@@ -9,13 +9,15 @@ public class Document {
     final String id;
     final ZonedDateTime timestamp;
     final List<Fragment> fragments;
+    final boolean deleted;
 
-    public Document(String namespace, String entity, String id, ZonedDateTime timestamp, List<Fragment> fragments) {
+    public Document(String namespace, String entity, String id, ZonedDateTime timestamp, List<Fragment> fragments, boolean deleted) {
         this.namespace = namespace;
         this.entity = entity;
         this.id = id;
         this.timestamp = timestamp;
         this.fragments = fragments;
+        this.deleted = deleted;
     }
 
     public String getNamespace() {
@@ -38,6 +40,10 @@ public class Document {
         return fragments;
     }
 
+    public boolean isDeleted() {
+        return deleted;
+    }
+
     @Override
     public String toString() {
         return "Document{" +
@@ -46,6 +52,7 @@ public class Document {
                 ", id='" + id + '\'' +
                 ", timestamp=" + timestamp +
                 ", fragments=" + fragments +
+                ", deleted=" + deleted +
                 '}';
     }
 }

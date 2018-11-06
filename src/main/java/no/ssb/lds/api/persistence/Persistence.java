@@ -49,10 +49,9 @@ public interface Persistence {
      * @param entity
      * @param id
      * @param policy
-     * @return True if entity existed, false otherwise
      * @throws PersistenceException
      */
-    boolean delete(ZonedDateTime timestamp, String namespace, String entity, String id, PersistenceDeletePolicy policy) throws PersistenceException;
+    void delete(ZonedDateTime timestamp, String namespace, String entity, String id, PersistenceDeletePolicy policy) throws PersistenceException;
 
     /**
      * Mark the given resource as deleted at the time provided by timestamp.
@@ -62,10 +61,9 @@ public interface Persistence {
      * @param entity
      * @param id
      * @param policy
-     * @return True if entity existed, false otherwise
      * @throws PersistenceException
      */
-    boolean markDeleted(ZonedDateTime timestamp, String namespace, String entity, String id, PersistenceDeletePolicy policy) throws PersistenceException;
+    void markDeleted(ZonedDateTime timestamp, String namespace, String entity, String id, PersistenceDeletePolicy policy) throws PersistenceException;
 
     /**
      * @param timestamp
