@@ -1,7 +1,7 @@
 package no.ssb.lds.api.persistence;
 
 import java.time.ZonedDateTime;
-import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public interface Persistence {
 
@@ -10,7 +10,7 @@ public interface Persistence {
      * @return timestamp of previous version of document or null if the provided document is the first version.
      * @throws PersistenceException
      */
-    void createOrOverwrite(Document document) throws PersistenceException;
+    CompletableFuture<PersistenceResult> createOrOverwrite(Document document) throws PersistenceException;
 
     /**
      * Read the given document identifiers at a given point in time.
@@ -21,7 +21,7 @@ public interface Persistence {
      * @param id
      * @return the document representet by the given resource parameters and timestamp or null if not exists.
      */
-    Document read(ZonedDateTime timestamp, String namespace, String entity, String id) throws PersistenceException;
+    CompletableFuture<PersistenceResult> read(ZonedDateTime timestamp, String namespace, String entity, String id) throws PersistenceException;
 
     /**
      * @param from
@@ -32,7 +32,7 @@ public interface Persistence {
      * @return
      * @throws PersistenceException
      */
-    List<Document> readVersions(ZonedDateTime from, ZonedDateTime to, String namespace, String entity, String id, int limit) throws PersistenceException;
+    CompletableFuture<PersistenceResult> readVersions(ZonedDateTime from, ZonedDateTime to, String namespace, String entity, String id, int limit) throws PersistenceException;
 
     /**
      * @param namespace
@@ -41,7 +41,7 @@ public interface Persistence {
      * @return
      * @throws PersistenceException
      */
-    List<Document> readAllVersions(String namespace, String entity, String id, int limit) throws PersistenceException;
+    CompletableFuture<PersistenceResult> readAllVersions(String namespace, String entity, String id, int limit) throws PersistenceException;
 
     /**
      * @param timestamp
@@ -51,7 +51,7 @@ public interface Persistence {
      * @param policy
      * @throws PersistenceException
      */
-    void delete(ZonedDateTime timestamp, String namespace, String entity, String id, PersistenceDeletePolicy policy) throws PersistenceException;
+    CompletableFuture<PersistenceResult> delete(ZonedDateTime timestamp, String namespace, String entity, String id, PersistenceDeletePolicy policy) throws PersistenceException;
 
     /**
      * Mark the given resource as deleted at the time provided by timestamp.
@@ -63,7 +63,7 @@ public interface Persistence {
      * @param policy
      * @throws PersistenceException
      */
-    void markDeleted(ZonedDateTime timestamp, String namespace, String entity, String id, PersistenceDeletePolicy policy) throws PersistenceException;
+    CompletableFuture<PersistenceResult> markDeleted(ZonedDateTime timestamp, String namespace, String entity, String id, PersistenceDeletePolicy policy) throws PersistenceException;
 
     /**
      * @param timestamp
@@ -72,7 +72,7 @@ public interface Persistence {
      * @return
      * @throws PersistenceException
      */
-    List<Document> findAll(ZonedDateTime timestamp, String namespace, String entity, int limit) throws PersistenceException;
+    CompletableFuture<PersistenceResult> findAll(ZonedDateTime timestamp, String namespace, String entity, int limit) throws PersistenceException;
 
     /**
      * @param timestamp
@@ -81,7 +81,7 @@ public interface Persistence {
      * @return
      * @throws PersistenceException
      */
-    List<Document> find(ZonedDateTime timestamp, String namespace, String entity, String path, String value, int limit) throws PersistenceException;
+    CompletableFuture<PersistenceResult> find(ZonedDateTime timestamp, String namespace, String entity, String path, String value, int limit) throws PersistenceException;
 
     /**
      * Clean up resources
