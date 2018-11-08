@@ -54,6 +54,15 @@ public interface Persistence {
     CompletableFuture<PersistenceResult> delete(ZonedDateTime timestamp, String namespace, String entity, String id, PersistenceDeletePolicy policy) throws PersistenceException;
 
     /**
+     * @param namespace
+     * @param entity
+     * @param id
+     * @param policy
+     * @throws PersistenceException
+     */
+    CompletableFuture<PersistenceResult> deleteAllVersions(String namespace, String entity, String id, PersistenceDeletePolicy policy) throws PersistenceException;
+
+    /**
      * Mark the given resource as deleted at the time provided by timestamp.
      *
      * @param timestamp

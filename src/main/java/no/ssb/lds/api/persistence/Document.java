@@ -1,17 +1,19 @@
 package no.ssb.lds.api.persistence;
 
 import java.time.ZonedDateTime;
-import java.util.List;
+import java.util.NavigableSet;
+import java.util.Objects;
+import java.util.Set;
 
 public class Document {
     final String namespace;
     final String entity;
     final String id;
     final ZonedDateTime timestamp;
-    final List<Fragment> fragments;
+    final NavigableSet<Fragment> fragments;
     final boolean deleted;
 
-    public Document(String namespace, String entity, String id, ZonedDateTime timestamp, List<Fragment> fragments, boolean deleted) {
+    public Document(String namespace, String entity, String id, ZonedDateTime timestamp, NavigableSet<Fragment> fragments, boolean deleted) {
         this.namespace = namespace;
         this.entity = entity;
         this.id = id;
@@ -36,7 +38,7 @@ public class Document {
         return timestamp;
     }
 
-    public List<Fragment> getFragments() {
+    public Set<Fragment> getFragments() {
         return fragments;
     }
 
@@ -54,5 +56,23 @@ public class Document {
                 ", fragments=" + fragments +
                 ", deleted=" + deleted +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Document document = (Document) o;
+        return deleted == document.deleted &&
+                Objects.equals(namespace, document.namespace) &&
+                Objects.equals(entity, document.entity) &&
+                Objects.equals(id, document.id) &&
+                Objects.equals(timestamp, document.timestamp) &&
+                Objects.equals(fragments, document.fragments);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(namespace, entity, id, timestamp, fragments, deleted);
     }
 }
