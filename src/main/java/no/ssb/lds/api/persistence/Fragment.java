@@ -64,14 +64,12 @@ public class Fragment implements Comparable<Fragment> {
         if (o == null || getClass() != o.getClass()) return false;
         Fragment fragment = (Fragment) o;
         return Objects.equals(path, fragment.path) &&
-                Objects.equals(value, fragment.value) &&
-                Objects.equals(indexUnawarePath, fragment.indexUnawarePath) &&
-                Objects.equals(indices, fragment.indices);
+                Objects.equals(value, fragment.value);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(path, value, indexUnawarePath, indices);
+        return Objects.hash(path, value);
     }
 
     @Override

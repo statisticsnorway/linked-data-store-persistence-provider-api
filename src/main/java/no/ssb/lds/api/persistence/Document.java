@@ -1,24 +1,23 @@
 package no.ssb.lds.api.persistence;
 
 import java.time.ZonedDateTime;
-import java.util.NavigableSet;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 public class Document {
     final String namespace;
     final String entity;
     final String id;
     final ZonedDateTime timestamp;
-    final NavigableSet<Fragment> fragments;
+    final Map<String, Fragment> fragmentByPath;
     final boolean deleted;
 
-    public Document(String namespace, String entity, String id, ZonedDateTime timestamp, NavigableSet<Fragment> fragments, boolean deleted) {
+    public Document(String namespace, String entity, String id, ZonedDateTime timestamp, Map<String, Fragment> fragmentByPath, boolean deleted) {
         this.namespace = namespace;
         this.entity = entity;
         this.id = id;
         this.timestamp = timestamp;
-        this.fragments = fragments;
+        this.fragmentByPath = fragmentByPath;
         this.deleted = deleted;
     }
 
@@ -38,8 +37,8 @@ public class Document {
         return timestamp;
     }
 
-    public Set<Fragment> getFragments() {
-        return fragments;
+    public Map<String, Fragment> getFragmentByPath() {
+        return fragmentByPath;
     }
 
     public boolean isDeleted() {
@@ -53,7 +52,7 @@ public class Document {
                 ", entity='" + entity + '\'' +
                 ", id='" + id + '\'' +
                 ", timestamp=" + timestamp +
-                ", fragments=" + fragments +
+                ", fragments=" + fragmentByPath +
                 ", deleted=" + deleted +
                 '}';
     }
@@ -68,11 +67,11 @@ public class Document {
                 Objects.equals(entity, document.entity) &&
                 Objects.equals(id, document.id) &&
                 Objects.equals(timestamp, document.timestamp) &&
-                Objects.equals(fragments, document.fragments);
+                Objects.equals(fragmentByPath, document.fragmentByPath);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespace, entity, id, timestamp, fragments, deleted);
+        return Objects.hash(namespace, entity, id, timestamp, fragmentByPath, deleted);
     }
 }
