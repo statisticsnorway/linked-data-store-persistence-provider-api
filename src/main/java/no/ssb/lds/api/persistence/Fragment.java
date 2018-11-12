@@ -7,16 +7,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Fragment implements Comparable<Fragment> {
+
     public final static Pattern arrayIndexPattern = Pattern.compile("\\[([0-9]*)\\]");
 
-    final String path;
-    final String value;
-    final String indexUnawarePath;
-    final List<Integer> indices = new LinkedList<>();
-
-    public Fragment(String path, String value) {
-        this.path = path;
-        this.value = value;
+    public static String computeIndexUnawarePath(String path, List<Integer> indices) {
         StringBuilder sb = new StringBuilder();
         Matcher m = arrayIndexPattern.matcher(path);
         int prevEnd = 0;
@@ -31,7 +25,18 @@ public class Fragment implements Comparable<Fragment> {
             prevEnd = m.end();
         }
         sb.append(path, prevEnd, path.length());
-        this.indexUnawarePath = sb.toString();
+        return sb.toString();
+    }
+
+    final String path;
+    final String value;
+    final String indexUnawarePath;
+    final List<Integer> arrayIndices = new LinkedList<>();
+
+    public Fragment(String path, String value) {
+        this.path = path;
+        this.value = value;
+        this.indexUnawarePath = computeIndexUnawarePath(path, arrayIndices);
     }
 
     public String getPath() {
@@ -47,7 +52,7 @@ public class Fragment implements Comparable<Fragment> {
     }
 
     public List<Integer> getArrayIndices() {
-        return indices;
+        return arrayIndices;
     }
 
     @Override
