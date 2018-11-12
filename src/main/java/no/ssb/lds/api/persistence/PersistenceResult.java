@@ -9,24 +9,12 @@ public class PersistenceResult {
     final boolean readOnly;
     final PersistenceStatistics statistics;
 
-    public static PersistenceResult writeResult() {
-        return new PersistenceResult(Collections.emptyList(), false, false, new PersistenceStatistics());
-    }
-
     public static PersistenceResult writeResult(PersistenceStatistics statistics) {
         return new PersistenceResult(Collections.emptyList(), false, false, statistics);
     }
 
-    public static PersistenceResult readResult(Document match) {
-        return new PersistenceResult(List.of(match), false, true, new PersistenceStatistics());
-    }
-
     public static PersistenceResult readResult(Document match, PersistenceStatistics statistics) {
-        return new PersistenceResult(List.of(match), false, true, statistics);
-    }
-
-    public static PersistenceResult readResult(List<Document> matches, boolean limitedMatches) {
-        return new PersistenceResult(matches, limitedMatches, true, new PersistenceStatistics());
+        return new PersistenceResult(match == null ? Collections.emptyList() : List.of(match), false, true, statistics);
     }
 
     public static PersistenceResult readResult(List<Document> matches, boolean limitedMatches, PersistenceStatistics statistics) {
