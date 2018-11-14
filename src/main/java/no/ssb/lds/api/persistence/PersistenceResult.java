@@ -1,46 +1,32 @@
 package no.ssb.lds.api.persistence;
 
-import java.util.Collections;
-import java.util.List;
-
 public class PersistenceResult {
-    final List<Document> matches;
-    final boolean limitedMatches;
-    final boolean readOnly;
-    final PersistenceStatistics statistics;
 
-    public static PersistenceResult writeResult(PersistenceStatistics statistics) {
-        return new PersistenceResult(Collections.emptyList(), false, false, statistics);
-    }
+    protected final Fragment fragment;
+    protected final PersistenceStatistics statistics;
+    protected final Boolean limitedMatches;
 
-    public static PersistenceResult readResult(Document match, PersistenceStatistics statistics) {
-        return new PersistenceResult(match == null ? Collections.emptyList() : List.of(match), false, true, statistics);
-    }
-
-    public static PersistenceResult readResult(List<Document> matches, boolean limitedMatches, PersistenceStatistics statistics) {
-        return new PersistenceResult(matches, limitedMatches, true, statistics);
-    }
-
-    PersistenceResult(List<Document> matches, boolean limitedMatches, boolean readOnly, PersistenceStatistics statistics) {
-        this.matches = matches;
-        this.limitedMatches = limitedMatches;
-        this.readOnly = readOnly;
+    public PersistenceResult(Fragment fragment, PersistenceStatistics statistics) {
+        this.fragment = fragment;
+        this.limitedMatches = null;
         this.statistics = statistics;
     }
 
-    public List<Document> getMatches() {
-        return matches;
+    public PersistenceResult(Fragment fragment, PersistenceStatistics statistics, boolean limitedMatches) {
+        this.fragment = fragment;
+        this.limitedMatches = limitedMatches;
+        this.statistics = statistics;
     }
 
-    public boolean isLimitedMatches() {
+    public Fragment fragment() {
+        return fragment;
+    }
+
+    public Boolean limitedMatches() {
         return limitedMatches;
     }
 
-    public boolean isReadOnly() {
-        return readOnly;
-    }
-
-    public PersistenceStatistics getStatistics() {
+    public PersistenceStatistics statistics() {
         return statistics;
     }
 }
