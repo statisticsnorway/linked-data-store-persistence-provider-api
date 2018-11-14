@@ -36,9 +36,11 @@ import java.util.concurrent.atomic.AtomicReference;
 public class BufferedPersistence {
 
     final Persistence persistence;
+    final int fragmentValueCapacityBytes;
 
     public BufferedPersistence(Persistence persistence) {
         this.persistence = persistence;
+        fragmentValueCapacityBytes = 8 * 1024;
     }
 
     /**
@@ -90,12 +92,13 @@ public class BufferedPersistence {
     public CompletableFuture<BufferedDocumentIterator> read(ZonedDateTime timestamp, String namespace, String entity, String id) throws PersistenceException {
         Flow.Publisher<PersistenceResult> publisher = persistence.read(timestamp, namespace, entity, id);
         CompletableFuture<BufferedDocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
-        publisher.subscribe(new Subscriber(iteratorCompletableFuture));
+        publisher.subscribe(new Subscriber(iteratorCompletableFuture, fragmentValueCapacityBytes));
         return iteratorCompletableFuture;
     }
 
     static class Subscriber implements Flow.Subscriber<PersistenceResult> {
         final CompletableFuture<BufferedDocumentIterator> result;
+        final int fragmentValueCapacityBytes;
         Flow.Subscription subscription;
         boolean limitedMatches = false;
         PersistenceStatistics statistics;
@@ -103,8 +106,9 @@ public class BufferedPersistence {
         Map<String, List<Fragment>> fragmentsByPath = new TreeMap<>();
         final List<Document> documents = new ArrayList<>();
 
-        Subscriber(CompletableFuture<BufferedDocumentIterator> result) {
+        Subscriber(CompletableFuture<BufferedDocumentIterator> result, int fragmentValueCapacityBytes) {
             this.result = result;
+            this.fragmentValueCapacityBytes = fragmentValueCapacityBytes;
         }
 
         @Override
@@ -141,7 +145,7 @@ public class BufferedPersistence {
             result.complete(new BufferedDocumentIterator(documents, statistics));
         }
 
-        static Document decodeDocument(DocumentKey documentKey, Map<String, List<Fragment>> fragmentsByPath) {
+        Document decodeDocument(DocumentKey documentKey, Map<String, List<Fragment>> fragmentsByPath) {
             TreeMap<String, DocumentLeafNode> leafNodesByPath = new TreeMap<>();
             CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
             CharBuffer out = CharBuffer.allocate(256);
@@ -176,7 +180,7 @@ public class BufferedPersistence {
                 throwRuntimeExceptionIfError(endOfInputCoderResult);
                 CoderResult flushCoderResult = decoder.flush(out);
                 throwRuntimeExceptionIfError(flushCoderResult);
-                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, value.toString()));
+                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, value.toString(), fragmentValueCapacityBytes));
             }
             return new Document(documentKey, leafNodesByPath, false);
         }
@@ -205,7 +209,7 @@ public class BufferedPersistence {
     public CompletableFuture<BufferedDocumentIterator> readVersions(ZonedDateTime from, ZonedDateTime to, String namespace, String entity, String id, int limit) throws PersistenceException {
         Flow.Publisher<PersistenceResult> publisher = persistence.readVersions(from, to, namespace, entity, id, limit);
         CompletableFuture<BufferedDocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
-        publisher.subscribe(new Subscriber(iteratorCompletableFuture));
+        publisher.subscribe(new Subscriber(iteratorCompletableFuture, fragmentValueCapacityBytes));
         return iteratorCompletableFuture;
     }
 
@@ -219,7 +223,7 @@ public class BufferedPersistence {
     public CompletableFuture<BufferedDocumentIterator> readAllVersions(String namespace, String entity, String id, int limit) throws PersistenceException {
         Flow.Publisher<PersistenceResult> publisher = persistence.readAllVersions(namespace, entity, id, limit);
         CompletableFuture<BufferedDocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
-        publisher.subscribe(new Subscriber(iteratorCompletableFuture));
+        publisher.subscribe(new Subscriber(iteratorCompletableFuture, fragmentValueCapacityBytes));
         return iteratorCompletableFuture;
     }
 

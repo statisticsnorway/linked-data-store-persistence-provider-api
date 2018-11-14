@@ -17,11 +17,13 @@ public class DocumentLeafNode {
     final DocumentKey key;
     final String path;
     final String value;
+    private int capacity;
 
-    public DocumentLeafNode(DocumentKey key, String path, String value) {
+    public DocumentLeafNode(DocumentKey key, String path, String value, int capacity) {
         this.key = key;
         this.path = path;
         this.value = value;
+        this.capacity = capacity;
     }
 
     public DocumentKey key() {
@@ -38,7 +40,7 @@ public class DocumentLeafNode {
 
     Iterator<Fragment> fragmentIterator() {
         List<Fragment> fragments = new LinkedList<>();
-        ByteBuffer out = ByteBuffer.allocate(8 * 1024);
+        ByteBuffer out = ByteBuffer.allocate(capacity);
         CharBuffer in = CharBuffer.wrap(value);
         CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
         CoderResult coderResult;
@@ -46,7 +48,7 @@ public class DocumentLeafNode {
         handleError(coderResult);
         int offset = 0;
         while (coderResult.isOverflow()) {
-            byte[] fragmentValue = new byte[0];
+            byte[] fragmentValue = new byte[out.position()];
             System.arraycopy(out.array(), 0, fragmentValue, 0, out.position());
             fragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, path, offset, fragmentValue));
             offset += out.position();
@@ -59,7 +61,9 @@ public class DocumentLeafNode {
         handleError(endOfInputCoderResult);
         CoderResult flushCoderResult = encoder.flush(out);
         handleError(flushCoderResult);
-        fragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, path, offset, out.array()));
+        byte[] fragmentValue = new byte[out.position()];
+        System.arraycopy(out.array(), 0, fragmentValue, 0, out.position());
+        fragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, path, offset, fragmentValue));
         return fragments.iterator();
     }
 

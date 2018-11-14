@@ -152,6 +152,7 @@ public class Fragment implements Comparable<Fragment> {
                 ", timestamp=" + timestamp +
                 ", path='" + path + '\'' +
                 ", offset=" + offset +
+                ", value=" + Arrays.toString(value) +
                 '}';
     }
 
