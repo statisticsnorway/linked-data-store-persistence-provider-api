@@ -159,7 +159,7 @@ public class BufferedPersistence {
                     if (fragment.deleteMarker()) {
                         return new Document(documentKey, Collections.emptyMap(), true);
                     }
-                    in = ByteBuffer.wrap(fragment.value);
+                    in = ByteBuffer.wrap(fragment.value());
                     CoderResult coderResult = decoder.decode(in, out, false);
                     throwRuntimeExceptionIfError(coderResult);
                     while (coderResult.isOverflow()) {
