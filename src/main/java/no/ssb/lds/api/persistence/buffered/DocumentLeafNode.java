@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 public class DocumentLeafNode {
 
@@ -76,5 +77,27 @@ public class DocumentLeafNode {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "DocumentLeafNode{" +
+                "path='" + path + '\'' +
+                ", value='" + value + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DocumentLeafNode that = (DocumentLeafNode) o;
+        return Objects.equals(path, that.path) &&
+                Objects.equals(value, that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(path, value);
     }
 }

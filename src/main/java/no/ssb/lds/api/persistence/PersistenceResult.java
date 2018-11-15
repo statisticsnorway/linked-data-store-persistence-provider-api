@@ -4,13 +4,7 @@ public class PersistenceResult {
 
     protected final Fragment fragment;
     protected final PersistenceStatistics statistics;
-    protected final Boolean limitedMatches;
-
-    public PersistenceResult(Fragment fragment, PersistenceStatistics statistics) {
-        this.fragment = fragment;
-        this.limitedMatches = null;
-        this.statistics = statistics;
-    }
+    protected final boolean limitedMatches;
 
     public PersistenceResult(Fragment fragment, PersistenceStatistics statistics, boolean limitedMatches) {
         this.fragment = fragment;

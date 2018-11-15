@@ -7,6 +7,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 
 import static org.testng.Assert.assertEquals;
@@ -62,5 +66,30 @@ public class DocumentTest {
         assertEquals(acutalLastname3, expectedLastname3);
 
         assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void thatDecodeDocumentWorks() {
+        DocumentKey key = new DocumentKey("ns", "E", "1", ZonedDateTime.now(ZoneId.of("Etc/UTC")));
+
+        Map<String, DocumentLeafNode> leafNodesByPath = new LinkedHashMap<>();
+        leafNodesByPath.put("firstname", new DocumentLeafNode(key, "firstname", "John", 3));
+        leafNodesByPath.put("lastname", new DocumentLeafNode(key, "lastname", "Smith", 3));
+        Document expectedDocument = new Document(key, leafNodesByPath, false);
+
+        Map<String, List<Fragment>> fragmentsByPath = new LinkedHashMap<>();
+        LinkedList<Fragment> fristnameFragments = new LinkedList<>();
+        fragmentsByPath.put("firstname", fristnameFragments);
+        LinkedList<Fragment> lastnameFragments = new LinkedList<>();
+        fragmentsByPath.put("lastname", lastnameFragments);
+        fristnameFragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, "firstname", 0, "Joh".getBytes(StandardCharsets.UTF_8)));
+        fristnameFragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, "firstname", 3, "n".getBytes(StandardCharsets.UTF_8)));
+        lastnameFragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, "lastname", 0, "Smi".getBytes(StandardCharsets.UTF_8)));
+        lastnameFragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, "lastname", 3, "th".getBytes(StandardCharsets.UTF_8)));
+
+        Document actual = Document.decodeDocument(key, fragmentsByPath, 3);
+
+        assertEquals(actual, expectedDocument);
+        assertEquals(actual.leafNodesByPath, expectedDocument.leafNodesByPath);
     }
 }

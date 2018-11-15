@@ -7,15 +7,8 @@ import no.ssb.lds.api.persistence.PersistenceException;
 import no.ssb.lds.api.persistence.PersistenceResult;
 import no.ssb.lds.api.persistence.PersistenceStatistics;
 
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CoderResult;
-import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -123,14 +116,26 @@ public class BufferedPersistence {
                 limitedMatches = true;
             }
             statistics = item.statistics();
+            Fragment fragment = item.fragment();
+
+            if (Fragment.DONE == fragment) {
+                return;
+            }
+
             if (documentKey == null) {
-                DocumentKey key = new DocumentKey(item.fragment().namespace(), item.fragment().entity(), item.fragment().id(), item.fragment().timestamp());
+                documentKey = DocumentKey.from(fragment);
             }
-            if (documentKey.equals(DocumentKey.from(item.fragment()))) {
-                fragmentsByPath.computeIfAbsent(item.fragment().path(), path -> new ArrayList<>()).add(item.fragment());
+
+            if (documentKey.equals(DocumentKey.from(fragment))) {
+                fragmentsByPath.computeIfAbsent(fragment.path(), path -> new ArrayList<>()).add(fragment);
             } else {
-                documents.add(decodeDocument(documentKey, fragmentsByPath));
+                if (!fragmentsByPath.isEmpty()) {
+                    documents.add(Document.decodeDocument(documentKey, fragmentsByPath, fragmentValueCapacityBytes));
+                }
+                fragmentsByPath.clear();
+                fragmentsByPath.computeIfAbsent(fragment.path(), path -> new ArrayList<>()).add(fragment);
             }
+
             subscription.request(1);
         }
 
@@ -141,59 +146,10 @@ public class BufferedPersistence {
 
         @Override
         public void onComplete() {
-            documents.add(decodeDocument(documentKey, fragmentsByPath));
+            if (!fragmentsByPath.isEmpty()) {
+                documents.add(Document.decodeDocument(documentKey, fragmentsByPath, fragmentValueCapacityBytes));
+            }
             result.complete(new BufferedDocumentIterator(documents, statistics));
-        }
-
-        Document decodeDocument(DocumentKey documentKey, Map<String, List<Fragment>> fragmentsByPath) {
-            TreeMap<String, DocumentLeafNode> leafNodesByPath = new TreeMap<>();
-            CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
-            CharBuffer out = CharBuffer.allocate(256);
-            for (Map.Entry<String, List<Fragment>> entry : fragmentsByPath.entrySet()) {
-                String path = entry.getKey();
-                List<Fragment> fragments = entry.getValue();
-                if (fragments.isEmpty()) {
-                    throw new IllegalStateException("No fragments for path: " + path);
-                }
-                StringBuilder value = new StringBuilder();
-                decoder.reset();
-                out.clear();
-                ByteBuffer in = null;
-                for (Fragment fragment : fragments) {
-                    if (fragment.deleteMarker()) {
-                        return new Document(documentKey, Collections.emptyMap(), true);
-                    }
-                    in = ByteBuffer.wrap(fragment.value());
-                    CoderResult coderResult = decoder.decode(in, out, false);
-                    throwRuntimeExceptionIfError(coderResult);
-                    while (coderResult.isOverflow()) {
-                        // drain out buffer
-                        value.append(out.flip());
-                        out.clear();
-                        coderResult = decoder.decode(in, out, false);
-                        throwRuntimeExceptionIfError(coderResult);
-                    }
-                    // underflow but possibly more fragments in leaf-node
-                }
-                // underflow and all fragments decoded
-                CoderResult endOfInputCoderResult = decoder.decode(in, out, true);
-                throwRuntimeExceptionIfError(endOfInputCoderResult);
-                CoderResult flushCoderResult = decoder.flush(out);
-                throwRuntimeExceptionIfError(flushCoderResult);
-                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, value.toString(), fragmentValueCapacityBytes));
-            }
-            return new Document(documentKey, leafNodesByPath, false);
-        }
-
-        static void throwRuntimeExceptionIfError(CoderResult coderResult) {
-            if (coderResult.isError()) {
-                try {
-                    coderResult.throwException();
-                    throw new IllegalStateException();
-                } catch (CharacterCodingException e) {
-                    throw new RuntimeException(e);
-                }
-            }
         }
     }
 

@@ -2,11 +2,19 @@ package no.ssb.lds.api.persistence.buffered;
 
 import no.ssb.lds.api.persistence.Fragment;
 
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 import static java.util.Optional.ofNullable;
 
@@ -55,12 +63,14 @@ public class Document {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Document document = (Document) o;
-        return Objects.equals(key, document.key);
+        return deleted == document.deleted &&
+                Objects.equals(key, document.key) &&
+                Objects.equals(leafNodesByPath, document.leafNodesByPath);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key);
+        return Objects.hash(key, leafNodesByPath, deleted);
     }
 
     public Iterator<Fragment> fragmentIterator() {
@@ -74,5 +84,57 @@ public class Document {
             }
         }
         return allDocumentFragments.iterator();
+    }
+
+    static Document decodeDocument(DocumentKey documentKey, Map<String, List<Fragment>> fragmentsByPath, int fragmentValueCapacityBytes) {
+        TreeMap<String, DocumentLeafNode> leafNodesByPath = new TreeMap<>();
+        CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
+        CharBuffer out = CharBuffer.allocate(256);
+        for (Map.Entry<String, List<Fragment>> entry : fragmentsByPath.entrySet()) {
+            String path = entry.getKey();
+            List<Fragment> fragments = entry.getValue();
+            if (fragments.isEmpty()) {
+                throw new IllegalStateException("No fragments for path: " + path);
+            }
+            StringBuilder value = new StringBuilder();
+            decoder.reset();
+            out.clear();
+            ByteBuffer in = null;
+            for (Fragment fragment : fragments) {
+                if (fragment.deleteMarker()) {
+                    return new Document(documentKey, Collections.emptyMap(), true);
+                }
+                in = ByteBuffer.wrap(fragment.value());
+                CoderResult coderResult = decoder.decode(in, out, false);
+                throwRuntimeExceptionIfError(coderResult);
+                while (coderResult.isOverflow()) {
+                    // drain out buffer
+                    value.append(out.flip());
+                    out.clear();
+                    coderResult = decoder.decode(in, out, false);
+                    throwRuntimeExceptionIfError(coderResult);
+                }
+                // underflow but possibly more fragments in leaf-node
+            }
+            // underflow and all fragments decoded
+            CoderResult endOfInputCoderResult = decoder.decode(in, out, true);
+            throwRuntimeExceptionIfError(endOfInputCoderResult);
+            CoderResult flushCoderResult = decoder.flush(out);
+            throwRuntimeExceptionIfError(flushCoderResult);
+            value.append(out.flip());
+            leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, value.toString(), fragmentValueCapacityBytes));
+        }
+        return new Document(documentKey, leafNodesByPath, false);
+    }
+
+    static void throwRuntimeExceptionIfError(CoderResult coderResult) {
+        if (coderResult.isError()) {
+            try {
+                coderResult.throwException();
+                throw new IllegalStateException();
+            } catch (CharacterCodingException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }
