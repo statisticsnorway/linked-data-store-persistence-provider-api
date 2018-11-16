@@ -18,7 +18,13 @@ public class Fragment implements Comparable<Fragment> {
     public static final String DELETED_MARKER = "DELETED";
     public static final int TRUNCATED_VALUE_LENGTH = 100;
 
-    public static final Fragment DONE = new Fragment(null, null, null, null, null, 0, null);
+    public static final String DONE = "done";
+    public static final String LIMITED = "limited";
+    public static final String NOT_LIMITED = "not limited";
+    public static final String STREAMING_CONTROL_NAMESPACE = "streaming-control";
+
+    public static final Fragment DONE_LIMITED = new Fragment(STREAMING_CONTROL_NAMESPACE, DONE, LIMITED, null, null, 0, null);
+    public static final Fragment DONE_NOT_LIMITED = new Fragment(STREAMING_CONTROL_NAMESPACE, DONE, NOT_LIMITED, null, null, 0, null);
 
     public final static Pattern arrayIndexPattern = Pattern.compile("\\[([0-9]*)\\]");
 
@@ -63,6 +69,41 @@ public class Fragment implements Comparable<Fragment> {
         this.path = path;
         this.offset = offset;
         this.value = value;
+    }
+
+    /**
+     * Whether or not this is a streaming-control fragment.
+     *
+     * @return true iff this is a streaming control fragment.
+     */
+    public boolean isStreamingControl() {
+        return STREAMING_CONTROL_NAMESPACE.equals(namespace);
+    }
+
+    /**
+     * Whether stream is done and was limited.
+     *
+     * @return true iff the stream was limited.
+     * @throws IllegalStateException if this method is called on a fragment that is not a steaming-control fragment.
+     */
+    public boolean isLimited() throws IllegalStateException {
+        if (!STREAMING_CONTROL_NAMESPACE.equals(namespace)) {
+            throw new IllegalStateException("Not a streaming-control message");
+        }
+        return DONE.equals(entity) && LIMITED.equals(id);
+    }
+
+    /**
+     * Whether stream is done and was not limited, i.e. all possible results were streamed.
+     *
+     * @return true iff the stream was not limited.
+     * @throws IllegalStateException if this method is called on a fragment that is not a steaming-control fragment.
+     */
+    public boolean isNotLimited() throws IllegalStateException {
+        if (!STREAMING_CONTROL_NAMESPACE.equals(namespace)) {
+            throw new IllegalStateException("Not a streaming-control message");
+        }
+        return DONE.equals(entity) && NOT_LIMITED.equals(id);
     }
 
     public boolean samePathAs(Fragment o) {
@@ -182,7 +223,7 @@ public class Fragment implements Comparable<Fragment> {
         if (this == o) {
             return 0;
         }
-        if (this == DONE) {
+        if (this == DONE_NOT_LIMITED) {
             return Integer.MAX_VALUE;
         }
         int cmp;

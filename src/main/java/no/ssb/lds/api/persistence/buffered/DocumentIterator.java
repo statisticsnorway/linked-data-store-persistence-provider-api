@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class DocumentIterator implements Iterator<Document> {
+public class DocumentIterator implements Iterable<Document>, Iterator<Document> {
 
     final List<Document> matches;
     final Iterator<Document> iterator;
@@ -19,8 +19,21 @@ public class DocumentIterator implements Iterator<Document> {
         }
     }
 
+    /**
+     * Returns a completable future that when complete signals whether or not the next() method will return another
+     * element, and allows next to be called without blocking.
+     * <p>
+     * This should be used as an asynchronous callback when the iterator has more elements.
+     *
+     * @return
+     */
     public CompletableFuture<Boolean> onHasNext() {
         return CompletableFuture.completedFuture(hasNext());
+    }
+
+    @Override
+    public Iterator<Document> iterator() {
+        return this;
     }
 
     @Override
@@ -31,8 +44,5 @@ public class DocumentIterator implements Iterator<Document> {
     @Override
     public Document next() {
         return iterator.next();
-    }
-
-    public void cancel() {
     }
 }

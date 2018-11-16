@@ -1,12 +1,10 @@
 package no.ssb.lds.api.persistence.buffered;
 
 import no.ssb.lds.api.persistence.Fragment;
-import no.ssb.lds.api.persistence.FragmentResult;
 import no.ssb.lds.api.persistence.Persistence;
 import no.ssb.lds.api.persistence.PersistenceDeletePolicy;
 import no.ssb.lds.api.persistence.PersistenceException;
 import no.ssb.lds.api.persistence.Transaction;
-import no.ssb.lds.api.persistence.TransactionStatistics;
 
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -83,14 +81,13 @@ public class DefaultBufferedPersistence implements BufferedPersistence {
         }));
     }
 
-    static class Subscriber implements Flow.Subscriber<FragmentResult> {
+    static class Subscriber implements Flow.Subscriber<Fragment> {
         final CompletableFuture<DocumentIterator> result;
         final int fragmentValueCapacityBytes;
         final int limit;
 
         Flow.Subscription subscription;
         boolean limitedMatches = false;
-        TransactionStatistics statistics;
         DocumentKey documentKey;
         final Map<String, List<Fragment>> fragmentsByPath = new TreeMap<>();
         final List<Document> documents = new ArrayList<>();
@@ -108,14 +105,13 @@ public class DefaultBufferedPersistence implements BufferedPersistence {
         }
 
         @Override
-        public void onNext(FragmentResult item) {
-            if (item.limitedMatches()) {
-                limitedMatches = true;
+        public void onNext(Fragment fragment) {
+            if (fragment.isStreamingControl()) {
+                limitedMatches = fragment.isLimited();
+                return;
             }
-            statistics = item.statistics();
-            Fragment fragment = item.fragment();
 
-            if (Fragment.DONE == fragment) {
+            if (Fragment.DONE_NOT_LIMITED == fragment) {
                 return;
             }
 
@@ -162,21 +158,21 @@ public class DefaultBufferedPersistence implements BufferedPersistence {
     }
 
     public CompletableFuture<DocumentIterator> read(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String id) throws PersistenceException {
-        Flow.Publisher<FragmentResult> publisher = persistence.read(transaction, snapshot, namespace, entity, id);
+        Flow.Publisher<Fragment> publisher = persistence.read(transaction, snapshot, namespace, entity, id);
         CompletableFuture<DocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
         publisher.subscribe(new Subscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, 1));
         return iteratorCompletableFuture;
     }
 
     public CompletableFuture<DocumentIterator> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, String firstId, int limit) throws PersistenceException {
-        Flow.Publisher<FragmentResult> publisher = persistence.readVersions(transaction, snapshotFrom, snapshotTo, namespace, entity, id, firstId, limit);
+        Flow.Publisher<Fragment> publisher = persistence.readVersions(transaction, snapshotFrom, snapshotTo, namespace, entity, id, firstId, limit);
         CompletableFuture<DocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
         publisher.subscribe(new Subscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, limit));
         return iteratorCompletableFuture;
     }
 
     public CompletableFuture<DocumentIterator> readAllVersions(Transaction transaction, String namespace, String entity, String id, ZonedDateTime firstVersion, int limit) throws PersistenceException {
-        Flow.Publisher<FragmentResult> publisher = persistence.readAllVersions(transaction, namespace, entity, id, firstVersion, Integer.MAX_VALUE);
+        Flow.Publisher<Fragment> publisher = persistence.readAllVersions(transaction, namespace, entity, id, firstVersion, Integer.MAX_VALUE);
         CompletableFuture<DocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
         publisher.subscribe(new Subscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, limit));
         return iteratorCompletableFuture;

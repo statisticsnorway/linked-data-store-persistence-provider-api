@@ -33,10 +33,10 @@ public interface Persistence {
      * @param namespace
      * @param entity
      * @param id
-     * @return a publisher that will produce all matching fragments as a stream of fragment results.
+     * @return a publisher that will produce all matching fragments as a stream.
      * @throws PersistenceException
      */
-    Flow.Publisher<FragmentResult> read(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String id) throws PersistenceException;
+    Flow.Publisher<Fragment> read(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String id) throws PersistenceException;
 
     /**
      * Attempt to read all distinct versions of the document identified by namespace, entity, and id given a from - to
@@ -50,10 +50,10 @@ public interface Persistence {
      * @param id
      * @param firstId
      * @param limit
-     * @return a publisher that will produce all matching fragments as a stream of fragment results.
+     * @return a publisher that will produce all matching fragments as a stream.
      * @throws PersistenceException
      */
-    Flow.Publisher<FragmentResult> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, String firstId, int limit) throws PersistenceException;
+    Flow.Publisher<Fragment> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, String firstId, int limit) throws PersistenceException;
 
     /**
      * Attempt to read all distinct versions of the document identified by namespace, entity, and id given a from - to
@@ -65,10 +65,10 @@ public interface Persistence {
      * @param id
      * @param firstVersion
      * @param limit
-     * @return a publisher that will produce all matching fragments as a stream of fragment results.
+     * @return a publisher that will produce all matching fragments as a stream.
      * @throws PersistenceException
      */
-    Flow.Publisher<FragmentResult> readAllVersions(Transaction transaction, String namespace, String entity, String id, ZonedDateTime firstVersion, int limit) throws PersistenceException;
+    Flow.Publisher<Fragment> readAllVersions(Transaction transaction, String namespace, String entity, String id, ZonedDateTime firstVersion, int limit) throws PersistenceException;
 
     /**
      * Delete versioned resource specified by namespace, entity, id, and version. If the versioned resource does not
@@ -119,10 +119,10 @@ public interface Persistence {
      * @param entity
      * @param firstId
      * @param limit
-     * @return a publisher that will produce all matching fragments as a stream of fragment results.
+     * @return a publisher that will produce all matching fragments as a stream.
      * @throws PersistenceException
      */
-    Flow.Publisher<FragmentResult> findAll(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String firstId, int limit) throws PersistenceException;
+    Flow.Publisher<Fragment> findAll(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String firstId, int limit) throws PersistenceException;
 
     /**
      * @param transaction
@@ -133,10 +133,10 @@ public interface Persistence {
      * @param value
      * @param firstId
      * @param limit
-     * @return a publisher that will produce all matching fragments as a stream of fragment results.
+     * @return a publisher that will produce all matching fragments as a stream.
      * @throws PersistenceException
      */
-    Flow.Publisher<FragmentResult> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, String value, String firstId, int limit) throws PersistenceException;
+    Flow.Publisher<Fragment> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, String value, String firstId, int limit) throws PersistenceException;
 
     /**
      * Clean up resources
