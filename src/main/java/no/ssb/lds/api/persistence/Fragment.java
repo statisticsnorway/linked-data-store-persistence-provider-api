@@ -164,6 +164,8 @@ public class Fragment implements Comparable<Fragment> {
     }
 
     public String truncatedValue() {
+        // TODO use a good hashing function (e.g. sha1) instead of truncating value
+        // TODO this will also provide predictable and small key-sizes.
         if (value == null || value.length == 0) {
             return "";
         }
