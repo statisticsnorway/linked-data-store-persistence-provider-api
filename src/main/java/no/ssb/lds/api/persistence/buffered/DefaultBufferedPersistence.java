@@ -107,7 +107,7 @@ public class DefaultBufferedPersistence implements BufferedPersistence {
     }
 
     public CompletableFuture<Void> markDeleted(Transaction transaction, String namespace, String entity, String id, ZonedDateTime version, PersistenceDeletePolicy policy) throws PersistenceException {
-        return markDeleted(transaction, namespace, entity, id, version, policy);
+        return persistence.markDeleted(transaction, namespace, entity, id, version, policy);
     }
 
     public CompletableFuture<DocumentIterator> findAll(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String firstId, int limit) throws PersistenceException {
