@@ -1,12 +1,12 @@
 package no.ssb.lds.api.persistence;
 
-public class PersistenceResult {
+public class FragmentResult {
 
     protected final Fragment fragment;
-    protected final PersistenceStatistics statistics;
+    protected final TransactionStatistics statistics;
     protected final boolean limitedMatches;
 
-    public PersistenceResult(Fragment fragment, PersistenceStatistics statistics, boolean limitedMatches) {
+    public FragmentResult(Fragment fragment, TransactionStatistics statistics, boolean limitedMatches) {
         this.fragment = fragment;
         this.limitedMatches = limitedMatches;
         this.statistics = statistics;
@@ -20,7 +20,7 @@ public class PersistenceResult {
         return limitedMatches;
     }
 
-    public PersistenceStatistics statistics() {
+    public TransactionStatistics statistics() {
         return statistics;
     }
 }

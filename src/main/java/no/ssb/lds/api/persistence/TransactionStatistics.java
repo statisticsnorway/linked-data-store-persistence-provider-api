@@ -5,10 +5,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class PersistenceStatistics {
+public class TransactionStatistics {
     final Map<String, AtomicLong> statistics = new ConcurrentHashMap<>();
 
-    public PersistenceStatistics add(String statistic, int increment) {
+    public TransactionStatistics add(String statistic, int increment) {
         statistics.computeIfAbsent(statistic, s -> new AtomicLong(0)).addAndGet(increment);
         return this;
     }
@@ -23,7 +23,7 @@ public class PersistenceStatistics {
 
     @Override
     public String toString() {
-        return "PersistenceStatistics{" +
+        return "TransactionStatistics{" +
                 "statistics=" + statistics +
                 '}';
     }
