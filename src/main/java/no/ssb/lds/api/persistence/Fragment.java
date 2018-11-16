@@ -18,13 +18,10 @@ public class Fragment implements Comparable<Fragment> {
     public static final String DELETED_MARKER = "DELETED";
     public static final int TRUNCATED_VALUE_LENGTH = 100;
 
-    public static final String DONE = "done";
-    public static final String LIMITED = "limited";
-    public static final String NOT_LIMITED = "not limited";
-    public static final String STREAMING_CONTROL_NAMESPACE = "streaming-control";
+    public static final short LIMITED_CODE = 41;
+    public static final short NOT_LIMITED_CODE = 42;
 
-    public static final Fragment DONE_LIMITED = new Fragment(STREAMING_CONTROL_NAMESPACE, DONE, LIMITED, null, null, 0, null);
-    public static final Fragment DONE_NOT_LIMITED = new Fragment(STREAMING_CONTROL_NAMESPACE, DONE, NOT_LIMITED, null, null, 0, null);
+    public static final Fragment DONE_NOT_LIMITED = new Fragment(true, NOT_LIMITED_CODE, null, null, null, null, null, 0, null);
 
     public final static Pattern arrayIndexPattern = Pattern.compile("\\[([0-9]*)\\]");
 
@@ -53,6 +50,9 @@ public class Fragment implements Comparable<Fragment> {
         return value.substring(0, TRUNCATED_VALUE_LENGTH);
     }
 
+    final boolean streamingControl;
+    final short controlCode;
+
     final String namespace;
     final String entity;
     final String id;
@@ -62,6 +62,20 @@ public class Fragment implements Comparable<Fragment> {
     final byte[] value;
 
     public Fragment(String namespace, String entity, String id, ZonedDateTime timestamp, String path, final long offset, byte[] value) {
+        this.streamingControl = false;
+        this.controlCode = 0;
+        this.namespace = namespace;
+        this.entity = entity;
+        this.id = id;
+        this.timestamp = timestamp;
+        this.path = path;
+        this.offset = offset;
+        this.value = value;
+    }
+
+    public Fragment(boolean streamingControl, short controlCode, String namespace, String entity, String id, ZonedDateTime timestamp, String path, final long offset, byte[] value) {
+        this.streamingControl = streamingControl;
+        this.controlCode = controlCode;
         this.namespace = namespace;
         this.entity = entity;
         this.id = id;
@@ -77,7 +91,7 @@ public class Fragment implements Comparable<Fragment> {
      * @return true iff this is a streaming control fragment.
      */
     public boolean isStreamingControl() {
-        return STREAMING_CONTROL_NAMESPACE.equals(namespace);
+        return streamingControl;
     }
 
     /**
@@ -87,10 +101,10 @@ public class Fragment implements Comparable<Fragment> {
      * @throws IllegalStateException if this method is called on a fragment that is not a steaming-control fragment.
      */
     public boolean isLimited() throws IllegalStateException {
-        if (!STREAMING_CONTROL_NAMESPACE.equals(namespace)) {
-            throw new IllegalStateException("Not a streaming-control message");
+        if (!streamingControl) {
+            throw new IllegalStateException("Not a steaming control fragment");
         }
-        return DONE.equals(entity) && LIMITED.equals(id);
+        return controlCode == LIMITED_CODE;
     }
 
     /**
@@ -100,10 +114,10 @@ public class Fragment implements Comparable<Fragment> {
      * @throws IllegalStateException if this method is called on a fragment that is not a steaming-control fragment.
      */
     public boolean isNotLimited() throws IllegalStateException {
-        if (!STREAMING_CONTROL_NAMESPACE.equals(namespace)) {
-            throw new IllegalStateException("Not a streaming-control message");
+        if (!streamingControl) {
+            throw new IllegalStateException("Not a steaming control fragment");
         }
-        return DONE.equals(entity) && NOT_LIMITED.equals(id);
+        return controlCode == NOT_LIMITED_CODE;
     }
 
     public boolean samePathAs(Fragment o) {
@@ -223,8 +237,12 @@ public class Fragment implements Comparable<Fragment> {
         if (this == o) {
             return 0;
         }
-        if (this == DONE_NOT_LIMITED) {
+        if (streamingControl && o.streamingControl) {
+            return controlCode - o.controlCode;
+        } else if (streamingControl) {
             return Integer.MAX_VALUE;
+        } else if (o.streamingControl) {
+            return Integer.MIN_VALUE;
         }
         int cmp;
         cmp = namespace.compareTo(o.namespace);

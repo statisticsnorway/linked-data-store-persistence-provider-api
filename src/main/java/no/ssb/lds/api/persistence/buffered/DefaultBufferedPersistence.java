@@ -111,10 +111,6 @@ public class DefaultBufferedPersistence implements BufferedPersistence {
                 return;
             }
 
-            if (Fragment.DONE_NOT_LIMITED == fragment) {
-                return;
-            }
-
             if (documents.size() >= limit) {
                 // document limit reached
                 subscription.cancel();
