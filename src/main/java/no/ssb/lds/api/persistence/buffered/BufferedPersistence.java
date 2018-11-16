@@ -15,8 +15,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A Buffered layer on top of Persistence streaming api that allows some additional functionality and
@@ -44,26 +44,34 @@ public class BufferedPersistence {
     public CompletableFuture<PersistenceStatistics> createOrOverwrite(Document document) throws PersistenceException {
         return persistence.createOrOverwrite(subscriber -> subscriber.onSubscribe(new Flow.Subscription() {
             final AtomicLong budget = new AtomicLong();
-            final AtomicReference<Iterator<Fragment>> fragmentIteratorRef = new AtomicReference<>();
+            final Iterator<Fragment> fragmentIterator = document.fragmentIterator();
+            final AtomicBoolean reEntryGuard = new AtomicBoolean(false);
 
             @Override
             public void request(long n) {
                 if (budget.getAndAdd(n) < 0) {
                     budget.getAndIncrement(); // return stolen budget
                 }
-                Iterator<Fragment> fragmentIterator = fragmentIteratorRef.get();
-                if (fragmentIterator == null) {
-                    fragmentIteratorRef.compareAndSet(null, fragmentIterator = document.fragmentIterator());
+
+                if (!reEntryGuard.compareAndSet(false, true)) {
+                    return; // re-entry protection
                 }
-                while (fragmentIterator.hasNext()) {
-                    if (budget.getAndDecrement() > 0) {
-                        subscriber.onNext(fragmentIterator.next());
-                    } else {
-                        return;// budget stolen, will be retured upon next request
+
+                try {
+                    while (fragmentIterator.hasNext()) {
+                        if (budget.getAndDecrement() > 0) {
+                            subscriber.onNext(fragmentIterator.next());
+                        } else {
+                            return;// budget stolen, will be retured upon next request
+                        }
                     }
+
+                    // iterator exhausted
+                    subscriber.onComplete();
+
+                } finally {
+                    reEntryGuard.set(false);
                 }
-                // iterator exhausted
-                subscriber.onComplete();
             }
 
             @Override
@@ -73,35 +81,22 @@ public class BufferedPersistence {
         }));
     }
 
-    /**
-     * Read the given document identifiers at a given point in time.
-     *
-     * @param timestamp a point in time defining a virtual snapshot-time-view of the linked-data-store.
-     * @param namespace
-     * @param entity
-     * @param id
-     * @return the document representet by the given resource parameters and timestamp or null if not exists.
-     */
-    public CompletableFuture<BufferedDocumentIterator> read(ZonedDateTime timestamp, String namespace, String entity, String id) throws PersistenceException {
-        Flow.Publisher<PersistenceResult> publisher = persistence.read(timestamp, namespace, entity, id);
-        CompletableFuture<BufferedDocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
-        publisher.subscribe(new Subscriber(iteratorCompletableFuture, fragmentValueCapacityBytes));
-        return iteratorCompletableFuture;
-    }
-
     static class Subscriber implements Flow.Subscriber<PersistenceResult> {
         final CompletableFuture<BufferedDocumentIterator> result;
         final int fragmentValueCapacityBytes;
+        final int limit;
+
         Flow.Subscription subscription;
         boolean limitedMatches = false;
         PersistenceStatistics statistics;
         DocumentKey documentKey;
-        Map<String, List<Fragment>> fragmentsByPath = new TreeMap<>();
+        final Map<String, List<Fragment>> fragmentsByPath = new TreeMap<>();
         final List<Document> documents = new ArrayList<>();
 
-        Subscriber(CompletableFuture<BufferedDocumentIterator> result, int fragmentValueCapacityBytes) {
+        Subscriber(CompletableFuture<BufferedDocumentIterator> result, int fragmentValueCapacityBytes, int limit) {
             this.result = result;
             this.fragmentValueCapacityBytes = fragmentValueCapacityBytes;
+            this.limit = limit;
         }
 
         @Override
@@ -122,21 +117,34 @@ public class BufferedPersistence {
                 return;
             }
 
-            if (documentKey == null) {
-                documentKey = DocumentKey.from(fragment);
+            if (documents.size() >= limit) {
+                // document limit reached
+                subscription.cancel();
+                return;
             }
 
-            if (documentKey.equals(DocumentKey.from(fragment))) {
+            DocumentKey fragmentDocumentKey = DocumentKey.from(fragment);
+
+            if (documentKey == null) {
+                documentKey = fragmentDocumentKey;
+            }
+
+            if (documentKey.equals(fragmentDocumentKey)) {
                 fragmentsByPath.computeIfAbsent(fragment.path(), path -> new ArrayList<>()).add(fragment);
             } else {
-                if (!fragmentsByPath.isEmpty()) {
-                    documents.add(Document.decodeDocument(documentKey, fragmentsByPath, fragmentValueCapacityBytes));
-                }
-                fragmentsByPath.clear();
+                addPendingDocumentAndResetMap();
                 fragmentsByPath.computeIfAbsent(fragment.path(), path -> new ArrayList<>()).add(fragment);
+                documentKey = fragmentDocumentKey;
             }
 
             subscription.request(1);
+        }
+
+        void addPendingDocumentAndResetMap() {
+            if (!fragmentsByPath.isEmpty()) {
+                documents.add(Document.decodeDocument(documentKey, fragmentsByPath, fragmentValueCapacityBytes));
+                fragmentsByPath.clear();
+            }
         }
 
         @Override
@@ -146,11 +154,25 @@ public class BufferedPersistence {
 
         @Override
         public void onComplete() {
-            if (!fragmentsByPath.isEmpty()) {
-                documents.add(Document.decodeDocument(documentKey, fragmentsByPath, fragmentValueCapacityBytes));
-            }
+            addPendingDocumentAndResetMap();
             result.complete(new BufferedDocumentIterator(documents, statistics));
         }
+    }
+
+    /**
+     * Read the given document identifiers at a given point in time.
+     *
+     * @param timestamp a point in time defining a virtual snapshot-time-view of the linked-data-store.
+     * @param namespace
+     * @param entity
+     * @param id
+     * @return the document representet by the given resource parameters and timestamp or null if not exists.
+     */
+    public CompletableFuture<BufferedDocumentIterator> read(ZonedDateTime timestamp, String namespace, String entity, String id) throws PersistenceException {
+        Flow.Publisher<PersistenceResult> publisher = persistence.read(timestamp, namespace, entity, id);
+        CompletableFuture<BufferedDocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
+        publisher.subscribe(new Subscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, 1));
+        return iteratorCompletableFuture;
     }
 
     /**
@@ -165,7 +187,7 @@ public class BufferedPersistence {
     public CompletableFuture<BufferedDocumentIterator> readVersions(ZonedDateTime from, ZonedDateTime to, String namespace, String entity, String id, int limit) throws PersistenceException {
         Flow.Publisher<PersistenceResult> publisher = persistence.readVersions(from, to, namespace, entity, id, limit);
         CompletableFuture<BufferedDocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
-        publisher.subscribe(new Subscriber(iteratorCompletableFuture, fragmentValueCapacityBytes));
+        publisher.subscribe(new Subscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, limit));
         return iteratorCompletableFuture;
     }
 
@@ -177,9 +199,9 @@ public class BufferedPersistence {
      * @throws PersistenceException
      */
     public CompletableFuture<BufferedDocumentIterator> readAllVersions(String namespace, String entity, String id, int limit) throws PersistenceException {
-        Flow.Publisher<PersistenceResult> publisher = persistence.readAllVersions(namespace, entity, id, limit);
+        Flow.Publisher<PersistenceResult> publisher = persistence.readAllVersions(namespace, entity, id, Integer.MAX_VALUE);
         CompletableFuture<BufferedDocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
-        publisher.subscribe(new Subscriber(iteratorCompletableFuture, fragmentValueCapacityBytes));
+        publisher.subscribe(new Subscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, limit));
         return iteratorCompletableFuture;
     }
 
