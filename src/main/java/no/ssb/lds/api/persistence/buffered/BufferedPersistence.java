@@ -3,6 +3,7 @@ package no.ssb.lds.api.persistence.buffered;
 import no.ssb.lds.api.persistence.PersistenceDeletePolicy;
 import no.ssb.lds.api.persistence.PersistenceException;
 import no.ssb.lds.api.persistence.Transaction;
+import no.ssb.lds.api.persistence.TransactionFactory;
 
 import java.time.ZonedDateTime;
 import java.util.concurrent.CompletableFuture;
@@ -10,12 +11,25 @@ import java.util.concurrent.CompletableFuture;
 public interface BufferedPersistence {
 
     /**
-     * Creates a new transaction.
+     * Returns a factory that can be used to create new transactions.
      *
+     * @return the transaction-factory.
+     * @throws PersistenceException
+     */
+    TransactionFactory transactionFactory() throws PersistenceException;
+
+    /**
+     * Uses the transaction-factory to create a new transaction. This method is equivalent
+     * to calling <code>transactionFactory.createTransaction()</code>.
+     *
+     * @param readOnly true if the transaction will only perform read operations, false if at least one write operation
+     *                 will be performed, and false if the caller is unsure. Note that the underlying persistence
+     *                 provider may be able to optimize performance and contention related issues when read-only
+     *                 transactions are involved.
      * @return the newly created transaction
      * @throws PersistenceException
      */
-    Transaction createTransaction() throws PersistenceException;
+    Transaction createTransaction(boolean readOnly) throws PersistenceException;
 
     /**
      * Persist the document within the context of the given transaction.

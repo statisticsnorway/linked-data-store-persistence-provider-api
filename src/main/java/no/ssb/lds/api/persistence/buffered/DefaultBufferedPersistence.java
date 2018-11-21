@@ -5,6 +5,7 @@ import no.ssb.lds.api.persistence.Persistence;
 import no.ssb.lds.api.persistence.PersistenceDeletePolicy;
 import no.ssb.lds.api.persistence.PersistenceException;
 import no.ssb.lds.api.persistence.Transaction;
+import no.ssb.lds.api.persistence.TransactionFactory;
 
 import java.time.ZonedDateTime;
 import java.util.Iterator;
@@ -32,8 +33,13 @@ public class DefaultBufferedPersistence implements BufferedPersistence {
     }
 
     @Override
-    public Transaction createTransaction() throws PersistenceException {
-        return persistence.createTransaction();
+    public TransactionFactory transactionFactory() throws PersistenceException {
+        return persistence.transactionFactory();
+    }
+
+    @Override
+    public Transaction createTransaction(boolean readOnly) throws PersistenceException {
+        return persistence.createTransaction(readOnly);
     }
 
     @Override

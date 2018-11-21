@@ -7,12 +7,25 @@ import java.util.concurrent.Flow;
 public interface Persistence {
 
     /**
-     * Creates a new transaction.
+     * Returns a factory that can be used to create new transactions.
      *
+     * @return the transaction-factory.
+     * @throws PersistenceException
+     */
+    TransactionFactory transactionFactory() throws PersistenceException;
+
+    /**
+     * Uses the transaction-factory to create a new transaction. This method is equivalent
+     * to calling <code>transactionFactory.createTransaction()</code>.
+     *
+     * @param readOnly true if the transaction will only perform read operations, false if at least one write operation
+     *                 will be performed, and false if the caller is unsure. Note that the underlying persistence
+     *                 provider may be able to optimize performance and contention related issues when read-only
+     *                 transactions are involved.
      * @return the newly created transaction
      * @throws PersistenceException
      */
-    Transaction createTransaction() throws PersistenceException;
+    Transaction createTransaction(boolean readOnly) throws PersistenceException;
 
     /**
      * Persist the stream of fragments to persistence storage within the context of the given transaction.
