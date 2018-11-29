@@ -1,6 +1,7 @@
 package no.ssb.lds.api.persistence.buffered;
 
 import no.ssb.lds.api.persistence.Fragment;
+import no.ssb.lds.api.persistence.FragmentType;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -90,41 +91,62 @@ public class Document {
         TreeMap<String, DocumentLeafNode> leafNodesByPath = new TreeMap<>();
         CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
         CharBuffer out = CharBuffer.allocate(256);
+        boolean deleted = false;
         for (Map.Entry<String, List<Fragment>> entry : fragmentsByPath.entrySet()) {
             String path = entry.getKey();
             List<Fragment> fragments = entry.getValue();
             if (fragments.isEmpty()) {
                 throw new IllegalStateException("No fragments for path: " + path);
             }
-            StringBuilder value = new StringBuilder();
-            decoder.reset();
-            out.clear();
-            ByteBuffer in = null;
-            for (Fragment fragment : fragments) {
-                if (fragment.deleteMarker()) {
-                    return new Document(documentKey, Collections.emptyMap(), true);
-                }
-                in = ByteBuffer.wrap(fragment.value());
-                CoderResult coderResult = decoder.decode(in, out, false);
-                throwRuntimeExceptionIfError(coderResult);
-                while (coderResult.isOverflow()) {
-                    // drain out buffer
-                    value.append(out.flip());
-                    out.clear();
-                    coderResult = decoder.decode(in, out, false);
+            FragmentType fragmentType = fragments.get(0).fragmentType();
+            if (FragmentType.STRING == fragmentType) {
+                StringBuilder value = new StringBuilder();
+                decoder.reset();
+                out.clear();
+                ByteBuffer in = null;
+                for (Fragment fragment : fragments) {
+                    if (fragment.deleteMarker()) {
+                        return new Document(documentKey, Collections.emptyMap(), true);
+                    }
+                    in = ByteBuffer.wrap(fragment.value());
+                    CoderResult coderResult = decoder.decode(in, out, false);
                     throwRuntimeExceptionIfError(coderResult);
+                    while (coderResult.isOverflow()) {
+                        // drain out buffer
+                        value.append(out.flip());
+                        out.clear();
+                        coderResult = decoder.decode(in, out, false);
+                        throwRuntimeExceptionIfError(coderResult);
+                    }
+                    // underflow but possibly more fragments in leaf-node
                 }
-                // underflow but possibly more fragments in leaf-node
+                // underflow and all fragments decoded
+                CoderResult endOfInputCoderResult = decoder.decode(in, out, true);
+                throwRuntimeExceptionIfError(endOfInputCoderResult);
+                CoderResult flushCoderResult = decoder.flush(out);
+                throwRuntimeExceptionIfError(flushCoderResult);
+                value.append(out.flip());
+                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.STRING, value.toString(), fragmentValueCapacityBytes));
+            } else if (FragmentType.NUMERIC == fragmentType) {
+                byte[] value = fragments.get(0).value();
+                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.NUMERIC, new String(value, StandardCharsets.UTF_8), fragmentValueCapacityBytes));
+            } else if (FragmentType.BOOLEAN == fragmentType) {
+                byte[] byteValue = fragments.get(0).value();
+                Boolean value = (byteValue[0] == (byte) 1) ? Boolean.TRUE : Boolean.FALSE;
+                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.BOOLEAN, value, fragmentValueCapacityBytes));
+            } else if (FragmentType.NULL == fragmentType) {
+                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.NULL, null, fragmentValueCapacityBytes));
+            } else if (FragmentType.EMPTY_ARRAY == fragmentType) {
+                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.EMPTY_ARRAY, null, fragmentValueCapacityBytes));
+            } else if (FragmentType.EMPTY_OBJECT == fragmentType) {
+                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.EMPTY_OBJECT, null, fragmentValueCapacityBytes));
+            } else if (FragmentType.DELETED == fragmentType) {
+                deleted = true;
+            } else {
+                throw new IllegalStateException("Unknown FragmentType: " + fragmentType);
             }
-            // underflow and all fragments decoded
-            CoderResult endOfInputCoderResult = decoder.decode(in, out, true);
-            throwRuntimeExceptionIfError(endOfInputCoderResult);
-            CoderResult flushCoderResult = decoder.flush(out);
-            throwRuntimeExceptionIfError(flushCoderResult);
-            value.append(out.flip());
-            leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, value.toString(), fragmentValueCapacityBytes));
         }
-        return new Document(documentKey, leafNodesByPath, false);
+        return new Document(documentKey, leafNodesByPath, deleted);
     }
 
     static void throwRuntimeExceptionIfError(CoderResult coderResult) {

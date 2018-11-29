@@ -12,7 +12,7 @@ public class FragmentTest {
 
     @Test
     public void thatArrayIndicesUnawarePathAndCorrectIndicesAreExtracted() {
-        Fragment fragment = new Fragment("", "", "", ZonedDateTime.now(ZoneId.of("Etc/UTC")), "$.a.b[3103].c.d[2].e", 0, null);
+        Fragment fragment = new Fragment("", "", "", ZonedDateTime.now(ZoneId.of("Etc/UTC")), "$.a.b[3103].c.d[2].e", FragmentType.NULL, 0, null);
         ArrayList<Integer> indices = new ArrayList<>();
         String actualPath = Fragment.computeIndexUnawarePath(fragment.path, indices);
         Assert.assertEquals(actualPath, "$.a.b[].c.d[].e");
@@ -21,7 +21,7 @@ public class FragmentTest {
 
     @Test
     public void thatArrayIndicesAndUnawarePathAreCorrectForEmptyPath() {
-        Fragment fragment = new Fragment("", "", "", ZonedDateTime.now(ZoneId.of("Etc/UTC")), "", 0, null);
+        Fragment fragment = new Fragment("", "", "", ZonedDateTime.now(ZoneId.of("Etc/UTC")), "", FragmentType.NULL, 0, null);
         ArrayList<Integer> indices = new ArrayList<>();
         String actualPath = Fragment.computeIndexUnawarePath(fragment.path, indices);
         Assert.assertEquals(actualPath, "");
@@ -30,7 +30,7 @@ public class FragmentTest {
 
     @Test
     public void thatArrayIndicesAndUnawarePathAreCorrectForPathWithoutArrays() {
-        Fragment fragment = new Fragment("", "", "", ZonedDateTime.now(ZoneId.of("Etc/UTC")), "$.a.b.c", 0, null);
+        Fragment fragment = new Fragment("", "", "", ZonedDateTime.now(ZoneId.of("Etc/UTC")), "$.a.b.c", FragmentType.NULL, 0, null);
         ArrayList<Integer> indices = new ArrayList<>();
         String actualPath = Fragment.computeIndexUnawarePath(fragment.path, indices);
         Assert.assertEquals(actualPath, "$.a.b.c");
@@ -39,7 +39,7 @@ public class FragmentTest {
 
     @Test
     public void thatArrayIndicesAndUnawarePathAreCorrectForPathWithoutArrayIndices() {
-        Fragment fragment = new Fragment("", "", "", ZonedDateTime.now(ZoneId.of("Etc/UTC")), "$.a.b[].c.d[0].e.f[].g", 0, null);
+        Fragment fragment = new Fragment("", "", "", ZonedDateTime.now(ZoneId.of("Etc/UTC")), "$.a.b[].c.d[0].e.f[].g", FragmentType.NULL, 0, null);
         ArrayList<Integer> indices = new ArrayList<>();
         String actualPath = Fragment.computeIndexUnawarePath(fragment.path, indices);
         Assert.assertEquals(actualPath, "$.a.b[].c.d[].e.f[].g");

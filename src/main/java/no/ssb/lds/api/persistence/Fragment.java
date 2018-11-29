@@ -15,13 +15,12 @@ import java.util.regex.Pattern;
 
 public class Fragment implements Comparable<Fragment> {
 
-    public static final String DELETED_MARKER = "DELETED";
     public static final int TRUNCATED_VALUE_LENGTH = 100;
 
     public static final short LIMITED_CODE = 41;
     public static final short NOT_LIMITED_CODE = 42;
 
-    public static final Fragment DONE_NOT_LIMITED = new Fragment(true, NOT_LIMITED_CODE, null, null, null, null, null, 0, null);
+    public static final Fragment DONE_NOT_LIMITED = new Fragment(true, NOT_LIMITED_CODE, null, null, null, null, null, null, 0, null);
 
     public final static Pattern arrayIndexPattern = Pattern.compile("\\[([0-9]*)\\]");
 
@@ -58,10 +57,11 @@ public class Fragment implements Comparable<Fragment> {
     final String id;
     final ZonedDateTime timestamp;
     final String path;
+    final FragmentType fragmentType;
     final long offset;
     final byte[] value;
 
-    public Fragment(String namespace, String entity, String id, ZonedDateTime timestamp, String path, final long offset, byte[] value) {
+    public Fragment(String namespace, String entity, String id, ZonedDateTime timestamp, String path, FragmentType fragmentType, final long offset, byte[] value) {
         this.streamingControl = false;
         this.controlCode = 0;
         this.namespace = namespace;
@@ -69,11 +69,12 @@ public class Fragment implements Comparable<Fragment> {
         this.id = id;
         this.timestamp = timestamp;
         this.path = path;
+        this.fragmentType = fragmentType;
         this.offset = offset;
         this.value = value;
     }
 
-    public Fragment(boolean streamingControl, short controlCode, String namespace, String entity, String id, ZonedDateTime timestamp, String path, final long offset, byte[] value) {
+    public Fragment(boolean streamingControl, short controlCode, String namespace, String entity, String id, ZonedDateTime timestamp, String path, FragmentType fragmentType, final long offset, byte[] value) {
         this.streamingControl = streamingControl;
         this.controlCode = controlCode;
         this.namespace = namespace;
@@ -81,6 +82,7 @@ public class Fragment implements Comparable<Fragment> {
         this.id = id;
         this.timestamp = timestamp;
         this.path = path;
+        this.fragmentType = fragmentType;
         this.offset = offset;
         this.value = value;
     }
@@ -151,6 +153,10 @@ public class Fragment implements Comparable<Fragment> {
         return path;
     }
 
+    public FragmentType fragmentType() {
+        return fragmentType;
+    }
+
     public long offset() {
         return offset;
     }
@@ -160,7 +166,7 @@ public class Fragment implements Comparable<Fragment> {
     }
 
     public boolean deleteMarker() {
-        return DELETED_MARKER.equals(path);
+        return FragmentType.DELETED.equals(fragmentType);
     }
 
     public String truncatedValue() {
@@ -208,6 +214,7 @@ public class Fragment implements Comparable<Fragment> {
                 ", id='" + id + '\'' +
                 ", timestamp=" + timestamp +
                 ", path='" + path + '\'' +
+                ", fragmentType=" + fragmentType +
                 ", offset=" + offset +
                 ", value=" + Arrays.toString(value) +
                 '}';
@@ -264,6 +271,10 @@ public class Fragment implements Comparable<Fragment> {
             return cmp;
         }
         cmp = path.compareTo(o.path);
+        if (cmp != 0) {
+            return cmp;
+        }
+        cmp = fragmentType.compareTo(o.fragmentType);
         if (cmp != 0) {
             return cmp;
         }
