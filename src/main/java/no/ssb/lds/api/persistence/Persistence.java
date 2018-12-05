@@ -149,7 +149,7 @@ public interface Persistence {
      * @return a publisher that will produce all matching fragments as a stream.
      * @throws PersistenceException
      */
-    Flow.Publisher<Fragment> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, String value, String firstId, int limit) throws PersistenceException;
+    Flow.Publisher<Fragment> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, byte[] value, String firstId, int limit) throws PersistenceException;
 
     /**
      * Clean up resources

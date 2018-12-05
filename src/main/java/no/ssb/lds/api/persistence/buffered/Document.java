@@ -132,7 +132,7 @@ public class Document {
                 leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.NUMERIC, new String(value, StandardCharsets.UTF_8), fragmentValueCapacityBytes));
             } else if (FragmentType.BOOLEAN == fragmentType) {
                 byte[] byteValue = fragments.get(0).value();
-                Boolean value = (byteValue[0] == (byte) 1) ? Boolean.TRUE : Boolean.FALSE;
+                String value = (byteValue[0] == (byte) 1) ? "true" : "false";
                 leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.BOOLEAN, value, fragmentValueCapacityBytes));
             } else if (FragmentType.NULL == fragmentType) {
                 leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.NULL, null, fragmentValueCapacityBytes));

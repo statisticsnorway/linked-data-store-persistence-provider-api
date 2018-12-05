@@ -1,6 +1,7 @@
 package no.ssb.lds.api.persistence.buffered;
 
 import no.ssb.lds.api.persistence.Fragment;
+import no.ssb.lds.api.persistence.FragmentType;
 import no.ssb.lds.api.persistence.Persistence;
 import no.ssb.lds.api.persistence.PersistenceDeletePolicy;
 import no.ssb.lds.api.persistence.PersistenceException;
@@ -9,27 +10,20 @@ import no.ssb.lds.api.persistence.TransactionFactory;
 
 import java.time.ZonedDateTime;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * A Buffered layer on top of Persistence streaming api that allows some additional functionality and
- * easier-to-work-with APIs.
- * <p>
- * NOTE: Because this layer buffers documents, and because documents can be of any size, this layer
- * may consume a lot of memory. When the streaming API provides the necessary functionality, it should
- * be used in favor of this layer to achieve predictable memory usage.
- */
 public class DefaultBufferedPersistence implements BufferedPersistence {
 
     final Persistence persistence;
     final int fragmentValueCapacityBytes;
 
-    public DefaultBufferedPersistence(Persistence persistence) {
+    public DefaultBufferedPersistence(Persistence persistence, int fragmentValueCapacityBytes) {
         this.persistence = persistence;
-        fragmentValueCapacityBytes = 8 * 1024;
+        this.fragmentValueCapacityBytes = fragmentValueCapacityBytes;
     }
 
     @Override
@@ -124,7 +118,9 @@ public class DefaultBufferedPersistence implements BufferedPersistence {
     }
 
     public CompletableFuture<DocumentIterator> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, String value, String firstId, int limit) throws PersistenceException {
-        Flow.Publisher<Fragment> publisher = persistence.find(transaction, snapshot, namespace, entity, path, value, firstId, Integer.MAX_VALUE);
+        Map<Integer, byte[]> valueByOffset = DocumentLeafNode.valueByOffset(FragmentType.STRING, fragmentValueCapacityBytes, value);
+        byte[] bytesValue = valueByOffset.get(0);
+        Flow.Publisher<Fragment> publisher = persistence.find(transaction, snapshot, namespace, entity, path, bytesValue, firstId, Integer.MAX_VALUE);
         CompletableFuture<DocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
         publisher.subscribe(new BufferedFragmentSubscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, path, value, limit));
         return iteratorCompletableFuture;

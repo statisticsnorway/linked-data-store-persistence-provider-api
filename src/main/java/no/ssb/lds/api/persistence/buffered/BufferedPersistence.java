@@ -8,6 +8,14 @@ import no.ssb.lds.api.persistence.TransactionFactory;
 import java.time.ZonedDateTime;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * A Buffered layer on top of Persistence streaming api that allows some additional functionality and
+ * easier-to-work-with APIs.
+ * <p>
+ * NOTE: Because this layer buffers documents, and because documents can be of any size, this layer
+ * may consume a lot of memory. When the streaming API provides the necessary functionality, it should
+ * be used in favor of this layer to achieve predictable memory usage.
+ */
 public interface BufferedPersistence {
 
     /**

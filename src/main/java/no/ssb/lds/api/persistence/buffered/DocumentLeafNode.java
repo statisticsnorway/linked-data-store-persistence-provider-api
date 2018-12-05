@@ -12,7 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 public class DocumentLeafNode {
 
@@ -23,10 +25,10 @@ public class DocumentLeafNode {
     final DocumentKey key;
     final String path;
     final FragmentType type;
-    final Object value;
+    final String value;
     final int capacity;
 
-    public DocumentLeafNode(DocumentKey key, String path, FragmentType type, Object value, int capacity) {
+    public DocumentLeafNode(DocumentKey key, String path, FragmentType type, String value, int capacity) {
         this.key = key;
         this.path = path;
         this.type = type;
@@ -50,18 +52,17 @@ public class DocumentLeafNode {
         return value;
     }
 
-    Iterator<Fragment> fragmentIterator() {
-        List<Fragment> fragments = new LinkedList<>();
+    public static Map<Integer, byte[]> valueByOffset(FragmentType type, int fragmentCapacity, String value) {
+        Map<Integer, byte[]> valueByOffset = new TreeMap<>();
         if (type == FragmentType.NULL) {
-            fragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, path, FragmentType.NULL, 0, EMPTY));
+            valueByOffset.put(0, EMPTY);
         } else if (type == FragmentType.BOOLEAN) {
-            fragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, path, FragmentType.BOOLEAN, 0, (Boolean) value ? TRUE : FALSE));
+            valueByOffset.put(0, Boolean.parseBoolean(value) ? TRUE : FALSE);
         } else if (type == FragmentType.NUMERIC) {
-            byte[] fragmentValue = ((String) value).getBytes(StandardCharsets.UTF_8);
-            fragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, path, FragmentType.NUMERIC, 0, fragmentValue));
+            valueByOffset.put(0, value.getBytes(StandardCharsets.UTF_8));
         } else if (type == FragmentType.STRING) {
-            ByteBuffer out = ByteBuffer.allocate(capacity);
-            CharBuffer in = CharBuffer.wrap((String) value);
+            ByteBuffer out = ByteBuffer.allocate(Math.min(fragmentCapacity, 2 * value.length() + 256));
+            CharBuffer in = CharBuffer.wrap(value);
             CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
             CoderResult coderResult;
             coderResult = encoder.encode(in, out, false);
@@ -70,7 +71,7 @@ public class DocumentLeafNode {
             while (coderResult.isOverflow()) {
                 byte[] fragmentValue = new byte[out.position()];
                 System.arraycopy(out.array(), 0, fragmentValue, 0, out.position());
-                fragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, path, FragmentType.STRING, offset, fragmentValue));
+                valueByOffset.put(offset, fragmentValue);
                 offset += out.position();
                 out.clear();
                 coderResult = encoder.encode(in, out, false);
@@ -83,13 +84,22 @@ public class DocumentLeafNode {
             handleError(flushCoderResult);
             byte[] fragmentValue = new byte[out.position()];
             System.arraycopy(out.array(), 0, fragmentValue, 0, out.position());
-            fragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, path, FragmentType.STRING, offset, fragmentValue));
+            valueByOffset.put(offset, fragmentValue);
         } else if (type == FragmentType.EMPTY_OBJECT) {
-            fragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, path, FragmentType.EMPTY_OBJECT, 0, EMPTY));
+            valueByOffset.put(0, EMPTY);
         } else if (type == FragmentType.EMPTY_ARRAY) {
-            fragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, path, FragmentType.EMPTY_ARRAY, 0, EMPTY));
+            valueByOffset.put(0, EMPTY);
         } else {
             throw new IllegalStateException("Unknown FragmentType: " + type);
+        }
+        return valueByOffset;
+    }
+
+    Iterator<Fragment> fragmentIterator() {
+        Map<Integer, byte[]> valueByOffset = valueByOffset(type, capacity, value);
+        List<Fragment> fragments = new LinkedList<>();
+        for (Map.Entry<Integer, byte[]> entry : valueByOffset.entrySet()) {
+            fragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, path, type, entry.getKey(), entry.getValue()));
         }
         return fragments.iterator();
     }

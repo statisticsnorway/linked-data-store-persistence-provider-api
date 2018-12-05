@@ -1,11 +1,5 @@
 package no.ssb.lds.api.persistence;
 
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CoderResult;
-import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -15,14 +9,13 @@ import java.util.regex.Pattern;
 
 public class Fragment implements Comparable<Fragment> {
 
-    public static final int TRUNCATED_VALUE_LENGTH = 100;
-
     public static final short LIMITED_CODE = 41;
     public static final short NOT_LIMITED_CODE = 42;
 
     public static final Fragment DONE_NOT_LIMITED = new Fragment(true, NOT_LIMITED_CODE, null, null, null, null, null, null, 0, null);
 
     public final static Pattern arrayIndexPattern = Pattern.compile("\\[([0-9]*)\\]");
+    public final static Pattern noIndexPattern = Pattern.compile("\\[\\]");
 
     public static String computeIndexUnawarePath(String path, List<Integer> indices) {
         StringBuilder sb = new StringBuilder();
@@ -42,11 +35,35 @@ public class Fragment implements Comparable<Fragment> {
         return sb.toString();
     }
 
-    public static String truncate(String value) {
-        if (value.length() <= TRUNCATED_VALUE_LENGTH) {
+    public static String computePathFromIndexUnawarePathAndIndices(String indexUnawarePath, List<Integer> indices) {
+        StringBuilder sb = new StringBuilder();
+        Matcher m = noIndexPattern.matcher(indexUnawarePath);
+        int i = 0;
+        int prevEnd = 0;
+        while (m.find()) {
+            sb.append(indexUnawarePath, prevEnd, m.start());
+            sb.append("[");
+            sb.append(indices.get(i++));
+            sb.append("]");
+            prevEnd = m.end();
+        }
+        sb.append(indexUnawarePath, prevEnd, indexUnawarePath.length());
+        return sb.toString();
+    }
+
+    public static final int TRUNCATED_VALUE_LENGTH = 100;
+
+    public static byte[] truncate(byte[] value) {
+        // TODO use a hashing function (e.g. md5) instead of truncating value
+        // TODO this will also provide predictable and small index key-sizes.
+
+        if (value.length <= TRUNCATED_VALUE_LENGTH) {
             return value;
         }
-        return value.substring(0, TRUNCATED_VALUE_LENGTH);
+
+        byte[] truncatedValue = new byte[TRUNCATED_VALUE_LENGTH];
+        System.arraycopy(value, 0, truncatedValue, 0, truncatedValue.length);
+        return truncatedValue;
     }
 
     final boolean streamingControl;
@@ -169,41 +186,8 @@ public class Fragment implements Comparable<Fragment> {
         return FragmentType.DELETED.equals(fragmentType);
     }
 
-    public String truncatedValue() {
-        // TODO use a good hashing function (e.g. sha1) instead of truncating value
-        // TODO this will also provide predictable and small key-sizes.
-        if (value == null || value.length == 0) {
-            return "";
-        }
-        CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
-        CharBuffer output = CharBuffer.allocate(TRUNCATED_VALUE_LENGTH);
-        ByteBuffer input = ByteBuffer.wrap(value);
-        CoderResult coderResult = decoder.decode(input, output, false);
-        throwRuntimeExceptionIfError(coderResult);
-        if (coderResult.isUnderflow()) {
-            // entire value fit in "truncated" value, all good, complete decoding sequence.
-            CoderResult endOfInputCoderResult = decoder.decode(input, output, true);
-            throwRuntimeExceptionIfError(endOfInputCoderResult);
-            CoderResult flushCoderResult = decoder.flush(output);
-            throwRuntimeExceptionIfError(flushCoderResult);
-            return output.flip().toString();
-        }
-        if (coderResult.isOverflow()) {
-            // value truncated
-            return output.flip().toString();
-        }
-        throw new IllegalStateException();
-    }
-
-    void throwRuntimeExceptionIfError(CoderResult coderResult) {
-        if (coderResult.isError()) {
-            try {
-                coderResult.throwException();
-                throw new IllegalStateException();
-            } catch (CharacterCodingException e) {
-                throw new RuntimeException(e);
-            }
-        }
+    public byte[] truncatedValue() {
+        return truncate(value);
     }
 
     @Override
