@@ -1,7 +1,7 @@
 package no.ssb.lds.api.persistence.buffered;
 
-import no.ssb.lds.api.persistence.Fragment;
-import no.ssb.lds.api.persistence.FragmentType;
+import no.ssb.lds.api.persistence.streaming.Fragment;
+import no.ssb.lds.api.persistence.streaming.FragmentType;
 import org.testng.annotations.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -18,15 +18,15 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
-public class DocumentTest {
+public class FlattenedDocumentTest {
 
     @Test
     public void thatLeafNodeWithSmallValueProduceSingleCorrectFragment() {
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Etc/UTC"));
         DocumentKey key = new DocumentKey("ns", "E", "1", now);
-        TreeMap<String, DocumentLeafNode> leafNodesByPath = new TreeMap<>();
-        Document document = new Document(key, leafNodesByPath, false);
-        DocumentLeafNode node = new DocumentLeafNode(key, "name", FragmentType.STRING, "My Name", 8 * 1024);
+        TreeMap<String, FlattenedDocumentLeafNode> leafNodesByPath = new TreeMap<>();
+        FlattenedDocument document = new FlattenedDocument(key, leafNodesByPath, false);
+        FlattenedDocumentLeafNode node = new FlattenedDocumentLeafNode(key, "name", FragmentType.STRING, "My Name", 8 * 1024);
         leafNodesByPath.put("name", node);
         Iterator<Fragment> iterator = document.fragmentIterator();
         assertTrue(iterator.hasNext());
@@ -40,10 +40,10 @@ public class DocumentTest {
     public void thatLeafNodeWithLargeValueProduceSeveralCorrectFragments() {
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Etc/UTC"));
         DocumentKey key = new DocumentKey("ns", "E", "1", now);
-        DocumentLeafNode firstname = new DocumentLeafNode(key, "firstname", FragmentType.STRING, "John", 3);
-        DocumentLeafNode lastname = new DocumentLeafNode(key, "lastname", FragmentType.STRING, "Smith", 3);
-        TreeMap<String, DocumentLeafNode> leafNodesByPath = new TreeMap<>();
-        Document document = new Document(key, leafNodesByPath, false);
+        FlattenedDocumentLeafNode firstname = new FlattenedDocumentLeafNode(key, "firstname", FragmentType.STRING, "John", 3);
+        FlattenedDocumentLeafNode lastname = new FlattenedDocumentLeafNode(key, "lastname", FragmentType.STRING, "Smith", 3);
+        TreeMap<String, FlattenedDocumentLeafNode> leafNodesByPath = new TreeMap<>();
+        FlattenedDocument document = new FlattenedDocument(key, leafNodesByPath, false);
         leafNodesByPath.put("firstname", firstname);
         leafNodesByPath.put("lastname", lastname);
         Iterator<Fragment> iterator = document.fragmentIterator();
@@ -73,10 +73,10 @@ public class DocumentTest {
     public void thatDecodeDocumentWorks() {
         DocumentKey key = new DocumentKey("ns", "E", "1", ZonedDateTime.now(ZoneId.of("Etc/UTC")));
 
-        Map<String, DocumentLeafNode> leafNodesByPath = new LinkedHashMap<>();
-        leafNodesByPath.put("firstname", new DocumentLeafNode(key, "firstname", FragmentType.STRING, "John", 3));
-        leafNodesByPath.put("lastname", new DocumentLeafNode(key, "lastname", FragmentType.STRING, "Smith", 3));
-        Document expectedDocument = new Document(key, leafNodesByPath, false);
+        Map<String, FlattenedDocumentLeafNode> leafNodesByPath = new LinkedHashMap<>();
+        leafNodesByPath.put("firstname", new FlattenedDocumentLeafNode(key, "firstname", FragmentType.STRING, "John", 3));
+        leafNodesByPath.put("lastname", new FlattenedDocumentLeafNode(key, "lastname", FragmentType.STRING, "Smith", 3));
+        FlattenedDocument expectedDocument = new FlattenedDocument(key, leafNodesByPath, false);
 
         Map<String, List<Fragment>> fragmentsByPath = new LinkedHashMap<>();
         LinkedList<Fragment> fristnameFragments = new LinkedList<>();
@@ -88,7 +88,7 @@ public class DocumentTest {
         lastnameFragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, "lastname", FragmentType.STRING, 0, "Smi".getBytes(StandardCharsets.UTF_8)));
         lastnameFragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, "lastname", FragmentType.STRING, 3, "th".getBytes(StandardCharsets.UTF_8)));
 
-        Document actual = Document.decodeDocument(key, fragmentsByPath, 3);
+        FlattenedDocument actual = FlattenedDocument.decodeDocument(key, fragmentsByPath, 3);
 
         assertEquals(actual, expectedDocument);
         assertEquals(actual.leafNodesByPath, expectedDocument.leafNodesByPath);

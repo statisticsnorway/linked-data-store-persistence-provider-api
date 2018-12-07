@@ -1,4 +1,4 @@
-package no.ssb.lds.api.persistence;
+package no.ssb.lds.api.persistence.streaming;
 
 public enum FragmentType {
     NULL((byte) 0), DELETED((byte) 1), EMPTY_OBJECT((byte) 2), EMPTY_ARRAY((byte) 3), STRING((byte) 4), NUMERIC((byte) 5), BOOLEAN((byte) 6);

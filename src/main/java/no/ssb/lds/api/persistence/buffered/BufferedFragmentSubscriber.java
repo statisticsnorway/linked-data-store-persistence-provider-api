@@ -1,6 +1,6 @@
 package no.ssb.lds.api.persistence.buffered;
 
-import no.ssb.lds.api.persistence.Fragment;
+import no.ssb.lds.api.persistence.streaming.Fragment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class BufferedFragmentSubscriber implements Flow.Subscriber<Fragment> {
 
-    final CompletableFuture<DocumentIterator> result;
+    final CompletableFuture<FlattenedDocumentIterator> result;
     final int fragmentValueCapacityBytes;
     final String path;
     final String value;
@@ -23,9 +23,9 @@ public class BufferedFragmentSubscriber implements Flow.Subscriber<Fragment> {
     final AtomicBoolean limitedMatchesRef = new AtomicBoolean(false);
     final AtomicReference<DocumentKey> documentKeyRef = new AtomicReference<>();
     final Map<String, List<Fragment>> fragmentsByPath = new TreeMap<>();
-    final List<Document> documents = new ArrayList<>();
+    final List<FlattenedDocument> documents = new ArrayList<>();
 
-    BufferedFragmentSubscriber(CompletableFuture<DocumentIterator> result, int fragmentValueCapacityBytes, String path, String value, int limit) {
+    BufferedFragmentSubscriber(CompletableFuture<FlattenedDocumentIterator> result, int fragmentValueCapacityBytes, String path, String value, int limit) {
         this.result = result;
         this.fragmentValueCapacityBytes = fragmentValueCapacityBytes;
         this.path = path;
@@ -69,9 +69,9 @@ public class BufferedFragmentSubscriber implements Flow.Subscriber<Fragment> {
 
     void addPendingDocumentAndResetMap() {
         if (!fragmentsByPath.isEmpty()) {
-            Document document = Document.decodeDocument(documentKeyRef.get(), fragmentsByPath, fragmentValueCapacityBytes);
+            FlattenedDocument document = FlattenedDocument.decodeDocument(documentKeyRef.get(), fragmentsByPath, fragmentValueCapacityBytes);
             if (path != null) {
-                DocumentLeafNode leafNode = document.leafNodesByPath().get(path);
+                FlattenedDocumentLeafNode leafNode = document.leafNodesByPath().get(path);
                 if (leafNode != null) {
                     if (value == null) {
                         if (leafNode.value() == null) {
@@ -100,7 +100,7 @@ public class BufferedFragmentSubscriber implements Flow.Subscriber<Fragment> {
     @Override
     public void onComplete() {
         addPendingDocumentAndResetMap();
-        result.complete(new DocumentIterator(documents));
+        result.complete(new FlattenedDocumentIterator(documents));
     }
 
     void nop() {

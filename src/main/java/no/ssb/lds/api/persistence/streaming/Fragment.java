@@ -1,4 +1,4 @@
-package no.ssb.lds.api.persistence;
+package no.ssb.lds.api.persistence.streaming;
 
 import java.time.ZonedDateTime;
 import java.util.Arrays;

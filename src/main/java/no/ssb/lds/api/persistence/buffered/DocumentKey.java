@@ -1,6 +1,6 @@
 package no.ssb.lds.api.persistence.buffered;
 
-import no.ssb.lds.api.persistence.Fragment;
+import no.ssb.lds.api.persistence.streaming.Fragment;
 
 import java.time.ZonedDateTime;
 import java.util.Objects;

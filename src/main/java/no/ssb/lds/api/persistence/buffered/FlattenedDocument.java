@@ -1,7 +1,7 @@
 package no.ssb.lds.api.persistence.buffered;
 
-import no.ssb.lds.api.persistence.Fragment;
-import no.ssb.lds.api.persistence.FragmentType;
+import no.ssb.lds.api.persistence.streaming.Fragment;
+import no.ssb.lds.api.persistence.streaming.FragmentType;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -19,12 +19,12 @@ import java.util.TreeMap;
 
 import static java.util.Optional.ofNullable;
 
-public class Document {
+public class FlattenedDocument {
     DocumentKey key;
-    final Map<String, DocumentLeafNode> leafNodesByPath;
+    final Map<String, FlattenedDocumentLeafNode> leafNodesByPath;
     final boolean deleted;
 
-    public Document(DocumentKey key, Map<String, DocumentLeafNode> leafNodesByPath, boolean deleted) {
+    public FlattenedDocument(DocumentKey key, Map<String, FlattenedDocumentLeafNode> leafNodesByPath, boolean deleted) {
         this.key = key;
         this.leafNodesByPath = leafNodesByPath;
         this.deleted = deleted;
@@ -34,11 +34,11 @@ public class Document {
         return key;
     }
 
-    public Map<String, DocumentLeafNode> leafNodesByPath() {
+    public Map<String, FlattenedDocumentLeafNode> leafNodesByPath() {
         return leafNodesByPath;
     }
 
-    public DocumentLeafNode leaf(String path) {
+    public FlattenedDocumentLeafNode leaf(String path) {
         return leafNodesByPath.get(path);
     }
 
@@ -52,7 +52,7 @@ public class Document {
 
     @Override
     public String toString() {
-        return "Document{" +
+        return "FlattenedDocument{" +
                 "key=" + key +
                 ", fragmentByPath=" + leafNodesByPath +
                 ", deleted=" + deleted +
@@ -63,7 +63,7 @@ public class Document {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Document document = (Document) o;
+        FlattenedDocument document = (FlattenedDocument) o;
         return deleted == document.deleted &&
                 Objects.equals(key, document.key) &&
                 Objects.equals(leafNodesByPath, document.leafNodesByPath);
@@ -77,7 +77,7 @@ public class Document {
     public Iterator<Fragment> fragmentIterator() {
         // TODO Iterable directly rather than creating temporary collection?
         List<Fragment> allDocumentFragments = new LinkedList<>();
-        for (Map.Entry<String, DocumentLeafNode> entry : leafNodesByPath.entrySet()) {
+        for (Map.Entry<String, FlattenedDocumentLeafNode> entry : leafNodesByPath.entrySet()) {
             Iterator<Fragment> fragmentIterator = entry.getValue().fragmentIterator();
             while (fragmentIterator.hasNext()) {
                 Fragment fragment = fragmentIterator.next();
@@ -87,8 +87,8 @@ public class Document {
         return allDocumentFragments.iterator();
     }
 
-    static Document decodeDocument(DocumentKey documentKey, Map<String, List<Fragment>> fragmentsByPath, int fragmentValueCapacityBytes) {
-        TreeMap<String, DocumentLeafNode> leafNodesByPath = new TreeMap<>();
+    static FlattenedDocument decodeDocument(DocumentKey documentKey, Map<String, List<Fragment>> fragmentsByPath, int fragmentValueCapacityBytes) {
+        TreeMap<String, FlattenedDocumentLeafNode> leafNodesByPath = new TreeMap<>();
         CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
         CharBuffer out = CharBuffer.allocate(256);
         boolean deleted = false;
@@ -106,7 +106,7 @@ public class Document {
                 ByteBuffer in = null;
                 for (Fragment fragment : fragments) {
                     if (fragment.deleteMarker()) {
-                        return new Document(documentKey, Collections.emptyMap(), true);
+                        return new FlattenedDocument(documentKey, Collections.emptyMap(), true);
                     }
                     in = ByteBuffer.wrap(fragment.value());
                     CoderResult coderResult = decoder.decode(in, out, false);
@@ -126,27 +126,27 @@ public class Document {
                 CoderResult flushCoderResult = decoder.flush(out);
                 throwRuntimeExceptionIfError(flushCoderResult);
                 value.append(out.flip());
-                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.STRING, value.toString(), fragmentValueCapacityBytes));
+                leafNodesByPath.put(path, new FlattenedDocumentLeafNode(documentKey, path, FragmentType.STRING, value.toString(), fragmentValueCapacityBytes));
             } else if (FragmentType.NUMERIC == fragmentType) {
                 byte[] value = fragments.get(0).value();
-                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.NUMERIC, new String(value, StandardCharsets.UTF_8), fragmentValueCapacityBytes));
+                leafNodesByPath.put(path, new FlattenedDocumentLeafNode(documentKey, path, FragmentType.NUMERIC, new String(value, StandardCharsets.UTF_8), fragmentValueCapacityBytes));
             } else if (FragmentType.BOOLEAN == fragmentType) {
                 byte[] byteValue = fragments.get(0).value();
                 String value = (byteValue[0] == (byte) 1) ? "true" : "false";
-                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.BOOLEAN, value, fragmentValueCapacityBytes));
+                leafNodesByPath.put(path, new FlattenedDocumentLeafNode(documentKey, path, FragmentType.BOOLEAN, value, fragmentValueCapacityBytes));
             } else if (FragmentType.NULL == fragmentType) {
-                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.NULL, null, fragmentValueCapacityBytes));
+                leafNodesByPath.put(path, new FlattenedDocumentLeafNode(documentKey, path, FragmentType.NULL, null, fragmentValueCapacityBytes));
             } else if (FragmentType.EMPTY_ARRAY == fragmentType) {
-                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.EMPTY_ARRAY, null, fragmentValueCapacityBytes));
+                leafNodesByPath.put(path, new FlattenedDocumentLeafNode(documentKey, path, FragmentType.EMPTY_ARRAY, null, fragmentValueCapacityBytes));
             } else if (FragmentType.EMPTY_OBJECT == fragmentType) {
-                leafNodesByPath.put(path, new DocumentLeafNode(documentKey, path, FragmentType.EMPTY_OBJECT, null, fragmentValueCapacityBytes));
+                leafNodesByPath.put(path, new FlattenedDocumentLeafNode(documentKey, path, FragmentType.EMPTY_OBJECT, null, fragmentValueCapacityBytes));
             } else if (FragmentType.DELETED == fragmentType) {
                 deleted = true;
             } else {
                 throw new IllegalStateException("Unknown FragmentType: " + fragmentType);
             }
         }
-        return new Document(documentKey, leafNodesByPath, deleted);
+        return new FlattenedDocument(documentKey, leafNodesByPath, deleted);
     }
 
     static void throwRuntimeExceptionIfError(CoderResult coderResult) {

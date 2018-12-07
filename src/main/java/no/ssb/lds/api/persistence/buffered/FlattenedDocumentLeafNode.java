@@ -1,7 +1,7 @@
 package no.ssb.lds.api.persistence.buffered;
 
-import no.ssb.lds.api.persistence.Fragment;
-import no.ssb.lds.api.persistence.FragmentType;
+import no.ssb.lds.api.persistence.streaming.Fragment;
+import no.ssb.lds.api.persistence.streaming.FragmentType;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 
-public class DocumentLeafNode {
+public class FlattenedDocumentLeafNode {
 
     static final byte[] EMPTY = new byte[0];
     static final byte[] TRUE = new byte[]{(byte) 1};
@@ -28,7 +28,7 @@ public class DocumentLeafNode {
     final String value;
     final int capacity;
 
-    public DocumentLeafNode(DocumentKey key, String path, FragmentType type, String value, int capacity) {
+    public FlattenedDocumentLeafNode(DocumentKey key, String path, FragmentType type, String value, int capacity) {
         this.key = key;
         this.path = path;
         this.type = type;
@@ -117,7 +117,7 @@ public class DocumentLeafNode {
 
     @Override
     public String toString() {
-        return "DocumentLeafNode{" +
+        return "FlattenedDocumentLeafNode{" +
                 "path='" + path + '\'' +
                 ", value='" + value + '\'' +
                 '}';
@@ -127,7 +127,7 @@ public class DocumentLeafNode {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        DocumentLeafNode that = (DocumentLeafNode) o;
+        FlattenedDocumentLeafNode that = (FlattenedDocumentLeafNode) o;
         return Objects.equals(path, that.path) &&
                 Objects.equals(value, that.value);
     }

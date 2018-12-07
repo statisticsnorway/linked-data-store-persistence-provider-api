@@ -5,12 +5,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class DocumentIterator implements Iterable<Document>, Iterator<Document> {
+public class FlattenedDocumentIterator implements Iterable<FlattenedDocument>, Iterator<FlattenedDocument> {
 
-    final List<Document> matches;
-    final Iterator<Document> iterator;
+    final List<FlattenedDocument> matches;
+    final Iterator<FlattenedDocument> iterator;
 
-    public DocumentIterator(List<Document> matches) {
+    public FlattenedDocumentIterator(List<FlattenedDocument> matches) {
         this.matches = matches;
         if (matches == null) {
             this.iterator = Collections.emptyListIterator();
@@ -32,7 +32,7 @@ public class DocumentIterator implements Iterable<Document>, Iterator<Document> 
     }
 
     @Override
-    public Iterator<Document> iterator() {
+    public Iterator<FlattenedDocument> iterator() {
         return this;
     }
 
@@ -42,7 +42,7 @@ public class DocumentIterator implements Iterable<Document>, Iterator<Document> 
     }
 
     @Override
-    public Document next() {
+    public FlattenedDocument next() {
         return iterator.next();
     }
 }

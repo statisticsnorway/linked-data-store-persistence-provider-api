@@ -10,11 +10,11 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * A Buffered layer on top of Persistence streaming api that allows some additional functionality and
- * easier-to-work-with APIs.
+ * easier-to-work-with APIs using buffered flattened document.
  * <p>
- * NOTE: Because this layer buffers documents, and because documents can be of any size, this layer
- * may consume a lot of memory. When the streaming API provides the necessary functionality, it should
- * be used in favor of this layer to achieve predictable memory usage.
+ * NOTE: Because this layer buffers flattened documents, and because these documents can be of any size,
+ * this layer may consume a lot of memory. When the streaming API provides the necessary functionality,
+ * it should be used in favor of this layer to achieve predictable memory usage.
  */
 public interface BufferedPersistence {
 
@@ -47,7 +47,7 @@ public interface BufferedPersistence {
      * @return a completable-future that will be completed when this operation is complete.
      * @throws PersistenceException
      */
-    CompletableFuture<Void> createOrOverwrite(Transaction transaction, Document document) throws PersistenceException;
+    CompletableFuture<Void> createOrOverwrite(Transaction transaction, FlattenedDocument document) throws PersistenceException;
 
     /**
      * Attempt to read the document identified by namespace, entity, and id from a snapshot in time of the
@@ -61,7 +61,7 @@ public interface BufferedPersistence {
      * @return a completable future that will complete with a document-iterator when ready.
      * @throws PersistenceException
      */
-    CompletableFuture<DocumentIterator> read(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String id) throws PersistenceException;
+    CompletableFuture<FlattenedDocumentIterator> read(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String id) throws PersistenceException;
 
     /**
      * Attempt to read all distinct versions of the document identified by namespace, entity, and id given a from - to
@@ -78,7 +78,7 @@ public interface BufferedPersistence {
      * @return a completable future that will complete with a document-iterator when ready.
      * @throws PersistenceException
      */
-    CompletableFuture<DocumentIterator> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, String firstId, int limit) throws PersistenceException;
+    CompletableFuture<FlattenedDocumentIterator> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, String firstId, int limit) throws PersistenceException;
 
     /**
      * Attempt to read all distinct versions of the document identified by namespace, entity, and id given a from - to
@@ -93,7 +93,7 @@ public interface BufferedPersistence {
      * @return a completable future that will complete with a document-iterator when ready.
      * @throws PersistenceException
      */
-    CompletableFuture<DocumentIterator> readAllVersions(Transaction transaction, String namespace, String entity, String id, ZonedDateTime firstVersion, int limit) throws PersistenceException;
+    CompletableFuture<FlattenedDocumentIterator> readAllVersions(Transaction transaction, String namespace, String entity, String id, ZonedDateTime firstVersion, int limit) throws PersistenceException;
 
     /**
      * Delete versioned resource specified by namespace, entity, id, and version. If the versioned resource does not
@@ -147,7 +147,7 @@ public interface BufferedPersistence {
      * @return a completable future that will complete with a document-iterator when ready.
      * @throws PersistenceException
      */
-    CompletableFuture<DocumentIterator> findAll(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String firstId, int limit) throws PersistenceException;
+    CompletableFuture<FlattenedDocumentIterator> findAll(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String firstId, int limit) throws PersistenceException;
 
     /**
      * @param transaction
@@ -161,7 +161,7 @@ public interface BufferedPersistence {
      * @return a completable future that will complete with a document-iterator when ready.
      * @throws PersistenceException
      */
-    CompletableFuture<DocumentIterator> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, String value, String firstId, int limit) throws PersistenceException;
+    CompletableFuture<FlattenedDocumentIterator> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, String value, String firstId, int limit) throws PersistenceException;
 
     /**
      * Clean up resources

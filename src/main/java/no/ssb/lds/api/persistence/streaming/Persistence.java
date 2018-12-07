@@ -1,4 +1,9 @@
-package no.ssb.lds.api.persistence;
+package no.ssb.lds.api.persistence.streaming;
+
+import no.ssb.lds.api.persistence.PersistenceDeletePolicy;
+import no.ssb.lds.api.persistence.PersistenceException;
+import no.ssb.lds.api.persistence.Transaction;
+import no.ssb.lds.api.persistence.TransactionFactory;
 
 import java.time.ZonedDateTime;
 import java.util.concurrent.CompletableFuture;

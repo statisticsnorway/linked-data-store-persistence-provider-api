@@ -1,12 +1,12 @@
 package no.ssb.lds.api.persistence.buffered;
 
-import no.ssb.lds.api.persistence.Fragment;
-import no.ssb.lds.api.persistence.FragmentType;
-import no.ssb.lds.api.persistence.Persistence;
 import no.ssb.lds.api.persistence.PersistenceDeletePolicy;
 import no.ssb.lds.api.persistence.PersistenceException;
 import no.ssb.lds.api.persistence.Transaction;
 import no.ssb.lds.api.persistence.TransactionFactory;
+import no.ssb.lds.api.persistence.streaming.Fragment;
+import no.ssb.lds.api.persistence.streaming.FragmentType;
+import no.ssb.lds.api.persistence.streaming.Persistence;
 
 import java.time.ZonedDateTime;
 import java.util.Iterator;
@@ -37,7 +37,7 @@ public class DefaultBufferedPersistence implements BufferedPersistence {
     }
 
     @Override
-    public CompletableFuture<Void> createOrOverwrite(Transaction transaction, Document document) throws PersistenceException {
+    public CompletableFuture<Void> createOrOverwrite(Transaction transaction, FlattenedDocument document) throws PersistenceException {
         return persistence.createOrOverwrite(transaction, subscriber -> subscriber.onSubscribe(new Flow.Subscription() {
             final AtomicLong budget = new AtomicLong();
             final Iterator<Fragment> fragmentIterator = document.fragmentIterator();
@@ -77,23 +77,23 @@ public class DefaultBufferedPersistence implements BufferedPersistence {
         }));
     }
 
-    public CompletableFuture<DocumentIterator> read(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String id) throws PersistenceException {
+    public CompletableFuture<FlattenedDocumentIterator> read(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String id) throws PersistenceException {
         Flow.Publisher<Fragment> publisher = persistence.read(transaction, snapshot, namespace, entity, id);
-        CompletableFuture<DocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
+        CompletableFuture<FlattenedDocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
         publisher.subscribe(new BufferedFragmentSubscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, null, null, 1));
         return iteratorCompletableFuture;
     }
 
-    public CompletableFuture<DocumentIterator> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, String firstId, int limit) throws PersistenceException {
+    public CompletableFuture<FlattenedDocumentIterator> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, String firstId, int limit) throws PersistenceException {
         Flow.Publisher<Fragment> publisher = persistence.readVersions(transaction, snapshotFrom, snapshotTo, namespace, entity, id, firstId, limit);
-        CompletableFuture<DocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
+        CompletableFuture<FlattenedDocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
         publisher.subscribe(new BufferedFragmentSubscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, null, null, limit));
         return iteratorCompletableFuture;
     }
 
-    public CompletableFuture<DocumentIterator> readAllVersions(Transaction transaction, String namespace, String entity, String id, ZonedDateTime firstVersion, int limit) throws PersistenceException {
+    public CompletableFuture<FlattenedDocumentIterator> readAllVersions(Transaction transaction, String namespace, String entity, String id, ZonedDateTime firstVersion, int limit) throws PersistenceException {
         Flow.Publisher<Fragment> publisher = persistence.readAllVersions(transaction, namespace, entity, id, firstVersion, Integer.MAX_VALUE);
-        CompletableFuture<DocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
+        CompletableFuture<FlattenedDocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
         publisher.subscribe(new BufferedFragmentSubscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, null, null, limit));
         return iteratorCompletableFuture;
     }
@@ -110,18 +110,18 @@ public class DefaultBufferedPersistence implements BufferedPersistence {
         return persistence.markDeleted(transaction, namespace, entity, id, version, policy);
     }
 
-    public CompletableFuture<DocumentIterator> findAll(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String firstId, int limit) throws PersistenceException {
+    public CompletableFuture<FlattenedDocumentIterator> findAll(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String firstId, int limit) throws PersistenceException {
         Flow.Publisher<Fragment> publisher = persistence.findAll(transaction, snapshot, namespace, entity, firstId, Integer.MAX_VALUE);
-        CompletableFuture<DocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
+        CompletableFuture<FlattenedDocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
         publisher.subscribe(new BufferedFragmentSubscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, null, null, limit));
         return iteratorCompletableFuture;
     }
 
-    public CompletableFuture<DocumentIterator> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, String value, String firstId, int limit) throws PersistenceException {
-        Map<Integer, byte[]> valueByOffset = DocumentLeafNode.valueByOffset(FragmentType.STRING, fragmentValueCapacityBytes, value);
+    public CompletableFuture<FlattenedDocumentIterator> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, String value, String firstId, int limit) throws PersistenceException {
+        Map<Integer, byte[]> valueByOffset = FlattenedDocumentLeafNode.valueByOffset(FragmentType.STRING, fragmentValueCapacityBytes, value);
         byte[] bytesValue = valueByOffset.get(0);
         Flow.Publisher<Fragment> publisher = persistence.find(transaction, snapshot, namespace, entity, path, bytesValue, firstId, Integer.MAX_VALUE);
-        CompletableFuture<DocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
+        CompletableFuture<FlattenedDocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
         publisher.subscribe(new BufferedFragmentSubscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, path, value, limit));
         return iteratorCompletableFuture;
     }

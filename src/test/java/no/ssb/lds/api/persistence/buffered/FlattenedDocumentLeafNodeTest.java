@@ -1,7 +1,7 @@
 package no.ssb.lds.api.persistence.buffered;
 
-import no.ssb.lds.api.persistence.Fragment;
-import no.ssb.lds.api.persistence.FragmentType;
+import no.ssb.lds.api.persistence.streaming.Fragment;
+import no.ssb.lds.api.persistence.streaming.FragmentType;
 import org.testng.annotations.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -13,13 +13,13 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
-public class DocumentLeafNodeTest {
+public class FlattenedDocumentLeafNodeTest {
 
     @Test
     public void thatLeafNodeWithSmallValueProduceSingleCorrectFragment() {
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Etc/UTC"));
         DocumentKey key = new DocumentKey("ns", "E", "1", now);
-        DocumentLeafNode node = new DocumentLeafNode(key, "name", FragmentType.STRING, "My Name", 8 * 1024);
+        FlattenedDocumentLeafNode node = new FlattenedDocumentLeafNode(key, "name", FragmentType.STRING, "My Name", 8 * 1024);
         Iterator<Fragment> iterator = node.fragmentIterator();
         assertTrue(iterator.hasNext());
         Fragment fragment = iterator.next();
@@ -32,7 +32,7 @@ public class DocumentLeafNodeTest {
     public void thatLeafNodeWithLargeValueProduceSeveralCorrectFragments() {
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Etc/UTC"));
         DocumentKey key = new DocumentKey("ns", "E", "1", now);
-        DocumentLeafNode node = new DocumentLeafNode(key, "name", FragmentType.STRING, "My Name", 3);
+        FlattenedDocumentLeafNode node = new FlattenedDocumentLeafNode(key, "name", FragmentType.STRING, "My Name", 3);
         Iterator<Fragment> iterator = node.fragmentIterator();
         assertTrue(iterator.hasNext());
         Fragment acutal0 = iterator.next();
