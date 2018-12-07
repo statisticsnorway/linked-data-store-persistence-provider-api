@@ -1,5 +1,6 @@
-package no.ssb.lds.api.persistence.buffered;
+package no.ssb.lds.api.persistence.flattened;
 
+import no.ssb.lds.api.persistence.DocumentKey;
 import no.ssb.lds.api.persistence.streaming.Fragment;
 import no.ssb.lds.api.persistence.streaming.FragmentType;
 import org.testng.annotations.Test;

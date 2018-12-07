@@ -1,8 +1,8 @@
 package no.ssb.lds.api.persistence.json;
 
-import no.ssb.lds.api.persistence.buffered.DocumentKey;
-import no.ssb.lds.api.persistence.buffered.FlattenedDocument;
-import no.ssb.lds.api.persistence.buffered.FlattenedDocumentLeafNode;
+import no.ssb.lds.api.persistence.DocumentKey;
+import no.ssb.lds.api.persistence.flattened.FlattenedDocument;
+import no.ssb.lds.api.persistence.flattened.FlattenedDocumentLeafNode;
 import no.ssb.lds.api.persistence.streaming.FragmentType;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -15,17 +15,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class JsonToFlattenedDocument {
+class JsonToFlattenedDocument {
 
-    final String namespace;
-    final String entity;
-    final String id;
-    final ZonedDateTime version;
-    final DocumentKey documentKey;
-    final JSONObject jsonObject;
-    final int fragmentCapacity;
+    private final String namespace;
+    private final String entity;
+    private final String id;
+    private final ZonedDateTime version;
+    private final DocumentKey documentKey;
+    private final JSONObject jsonObject;
+    private final int fragmentCapacity;
 
-    public JsonToFlattenedDocument(String namespace, String entity, String id, ZonedDateTime version, JSONObject jsonObject, int fragmentCapacity) {
+    JsonToFlattenedDocument(String namespace, String entity, String id, ZonedDateTime version, JSONObject jsonObject, int fragmentCapacity) {
         this.namespace = namespace;
         this.entity = entity;
         this.id = id;
@@ -35,7 +35,7 @@ public class JsonToFlattenedDocument {
         documentKey = new DocumentKey(namespace, entity, id, version);
     }
 
-    public FlattenedDocument toDocument() {
+    FlattenedDocument toDocument() {
         Map<String, FlattenedDocumentLeafNode> leafNodesByPath = new LinkedHashMap<>();
         Deque<String> parentPath = new LinkedList<>();
         parentPath.add("$");

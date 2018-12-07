@@ -1,7 +1,7 @@
 package no.ssb.lds.api.persistence.json;
 
-import no.ssb.lds.api.persistence.buffered.FlattenedDocument;
-import no.ssb.lds.api.persistence.buffered.FlattenedDocumentLeafNode;
+import no.ssb.lds.api.persistence.flattened.FlattenedDocument;
+import no.ssb.lds.api.persistence.flattened.FlattenedDocumentLeafNode;
 import no.ssb.lds.api.persistence.streaming.FragmentType;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -10,17 +10,17 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class FlattenedDocumentToJson {
+class FlattenedDocumentToJson {
 
     static final Pattern arrayNavigationPattern = Pattern.compile("([^\\[]*)\\[([0-9]+)\\]");
 
     final FlattenedDocument document;
 
-    public FlattenedDocumentToJson(FlattenedDocument document) {
+    FlattenedDocumentToJson(FlattenedDocument document) {
         this.document = document;
     }
 
-    public JSONObject toJSONObject() {
+    JSONObject toJSONObject() {
         JSONObject root = new JSONObject();
         for (Map.Entry<String, FlattenedDocumentLeafNode> entry : document.leafNodesByPath().entrySet()) {
             String path = entry.getKey();

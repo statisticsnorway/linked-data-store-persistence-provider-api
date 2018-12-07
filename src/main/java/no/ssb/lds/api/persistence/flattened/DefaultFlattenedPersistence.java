@@ -1,4 +1,4 @@
-package no.ssb.lds.api.persistence.buffered;
+package no.ssb.lds.api.persistence.flattened;
 
 import no.ssb.lds.api.persistence.PersistenceDeletePolicy;
 import no.ssb.lds.api.persistence.PersistenceException;
@@ -16,12 +16,12 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class DefaultBufferedPersistence implements BufferedPersistence {
+public class DefaultFlattenedPersistence implements FlattenedPersistence {
 
     final Persistence persistence;
     final int fragmentValueCapacityBytes;
 
-    public DefaultBufferedPersistence(Persistence persistence, int fragmentValueCapacityBytes) {
+    public DefaultFlattenedPersistence(Persistence persistence, int fragmentValueCapacityBytes) {
         this.persistence = persistence;
         this.fragmentValueCapacityBytes = fragmentValueCapacityBytes;
     }

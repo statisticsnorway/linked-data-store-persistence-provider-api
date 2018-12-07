@@ -1,5 +1,6 @@
-package no.ssb.lds.api.persistence.buffered;
+package no.ssb.lds.api.persistence.flattened;
 
+import no.ssb.lds.api.persistence.DocumentKey;
 import no.ssb.lds.api.persistence.streaming.Fragment;
 import no.ssb.lds.api.persistence.streaming.FragmentType;
 
@@ -20,9 +21,9 @@ import java.util.TreeMap;
 import static java.util.Optional.ofNullable;
 
 public class FlattenedDocument {
-    DocumentKey key;
-    final Map<String, FlattenedDocumentLeafNode> leafNodesByPath;
-    final boolean deleted;
+    private final DocumentKey key;
+    private final Map<String, FlattenedDocumentLeafNode> leafNodesByPath;
+    private final boolean deleted;
 
     public FlattenedDocument(DocumentKey key, Map<String, FlattenedDocumentLeafNode> leafNodesByPath, boolean deleted) {
         this.key = key;
@@ -42,12 +43,12 @@ public class FlattenedDocument {
         return leafNodesByPath.get(path);
     }
 
-    public boolean isDeleted() {
+    public boolean deleted() {
         return deleted;
     }
 
     public boolean contains(String path, String value) {
-        return ofNullable(leafNodesByPath.get(path)).map(leaf -> leaf.value).map(v -> value.equals(v)).orElse(Boolean.FALSE);
+        return ofNullable(leafNodesByPath.get(path)).map(leaf -> leaf.value()).map(v -> value.equals(v)).orElse(Boolean.FALSE);
     }
 
     @Override
@@ -74,7 +75,7 @@ public class FlattenedDocument {
         return Objects.hash(key, leafNodesByPath, deleted);
     }
 
-    public Iterator<Fragment> fragmentIterator() {
+    Iterator<Fragment> fragmentIterator() {
         // TODO Iterable directly rather than creating temporary collection?
         List<Fragment> allDocumentFragments = new LinkedList<>();
         for (Map.Entry<String, FlattenedDocumentLeafNode> entry : leafNodesByPath.entrySet()) {
@@ -149,7 +150,7 @@ public class FlattenedDocument {
         return new FlattenedDocument(documentKey, leafNodesByPath, deleted);
     }
 
-    static void throwRuntimeExceptionIfError(CoderResult coderResult) {
+    private static void throwRuntimeExceptionIfError(CoderResult coderResult) {
         if (coderResult.isError()) {
             try {
                 coderResult.throwException();

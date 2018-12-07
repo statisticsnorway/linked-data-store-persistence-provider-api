@@ -1,4 +1,4 @@
-package no.ssb.lds.api.persistence.buffered;
+package no.ssb.lds.api.persistence.flattened;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -7,11 +7,9 @@ import java.util.concurrent.CompletableFuture;
 
 public class FlattenedDocumentIterator implements Iterable<FlattenedDocument>, Iterator<FlattenedDocument> {
 
-    final List<FlattenedDocument> matches;
-    final Iterator<FlattenedDocument> iterator;
+    private final Iterator<FlattenedDocument> iterator;
 
-    public FlattenedDocumentIterator(List<FlattenedDocument> matches) {
-        this.matches = matches;
+    FlattenedDocumentIterator(List<FlattenedDocument> matches) {
         if (matches == null) {
             this.iterator = Collections.emptyListIterator();
         } else {

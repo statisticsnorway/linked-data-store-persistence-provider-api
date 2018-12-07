@@ -1,5 +1,6 @@
-package no.ssb.lds.api.persistence.buffered;
+package no.ssb.lds.api.persistence.flattened;
 
+import no.ssb.lds.api.persistence.DocumentKey;
 import no.ssb.lds.api.persistence.streaming.Fragment;
 import no.ssb.lds.api.persistence.streaming.FragmentType;
 import org.testng.annotations.Test;
@@ -83,14 +84,14 @@ public class FlattenedDocumentTest {
         fragmentsByPath.put("firstname", fristnameFragments);
         LinkedList<Fragment> lastnameFragments = new LinkedList<>();
         fragmentsByPath.put("lastname", lastnameFragments);
-        fristnameFragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, "firstname", FragmentType.STRING, 0, "Joh".getBytes(StandardCharsets.UTF_8)));
-        fristnameFragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, "firstname", FragmentType.STRING, 3, "n".getBytes(StandardCharsets.UTF_8)));
-        lastnameFragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, "lastname", FragmentType.STRING, 0, "Smi".getBytes(StandardCharsets.UTF_8)));
-        lastnameFragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, "lastname", FragmentType.STRING, 3, "th".getBytes(StandardCharsets.UTF_8)));
+        fristnameFragments.add(new Fragment(key.namespace(), key.entity(), key.id(), key.timestamp(), "firstname", FragmentType.STRING, 0, "Joh".getBytes(StandardCharsets.UTF_8)));
+        fristnameFragments.add(new Fragment(key.namespace(), key.entity(), key.id(), key.timestamp(), "firstname", FragmentType.STRING, 3, "n".getBytes(StandardCharsets.UTF_8)));
+        lastnameFragments.add(new Fragment(key.namespace(), key.entity(), key.id(), key.timestamp(), "lastname", FragmentType.STRING, 0, "Smi".getBytes(StandardCharsets.UTF_8)));
+        lastnameFragments.add(new Fragment(key.namespace(), key.entity(), key.id(), key.timestamp(), "lastname", FragmentType.STRING, 3, "th".getBytes(StandardCharsets.UTF_8)));
 
         FlattenedDocument actual = FlattenedDocument.decodeDocument(key, fragmentsByPath, 3);
 
         assertEquals(actual, expectedDocument);
-        assertEquals(actual.leafNodesByPath, expectedDocument.leafNodesByPath);
+        assertEquals(actual.leafNodesByPath(), expectedDocument.leafNodesByPath());
     }
 }

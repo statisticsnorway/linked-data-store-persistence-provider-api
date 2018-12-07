@@ -1,5 +1,6 @@
-package no.ssb.lds.api.persistence.buffered;
+package no.ssb.lds.api.persistence.flattened;
 
+import no.ssb.lds.api.persistence.DocumentKey;
 import no.ssb.lds.api.persistence.streaming.Fragment;
 import no.ssb.lds.api.persistence.streaming.FragmentType;
 
@@ -18,15 +19,15 @@ import java.util.TreeMap;
 
 public class FlattenedDocumentLeafNode {
 
-    static final byte[] EMPTY = new byte[0];
-    static final byte[] TRUE = new byte[]{(byte) 1};
-    static final byte[] FALSE = new byte[]{(byte) 0};
+    private static final byte[] EMPTY = new byte[0];
+    private static final byte[] TRUE = new byte[]{(byte) 1};
+    private static final byte[] FALSE = new byte[]{(byte) 0};
 
-    final DocumentKey key;
-    final String path;
-    final FragmentType type;
-    final String value;
-    final int capacity;
+    private final DocumentKey key;
+    private final String path;
+    private final FragmentType type;
+    private final String value;
+    private final int capacity;
 
     public FlattenedDocumentLeafNode(DocumentKey key, String path, FragmentType type, String value, int capacity) {
         this.key = key;
@@ -99,7 +100,7 @@ public class FlattenedDocumentLeafNode {
         Map<Integer, byte[]> valueByOffset = valueByOffset(type, capacity, value);
         List<Fragment> fragments = new LinkedList<>();
         for (Map.Entry<Integer, byte[]> entry : valueByOffset.entrySet()) {
-            fragments.add(new Fragment(key.namespace, key.entity, key.id, key.timestamp, path, type, entry.getKey(), entry.getValue()));
+            fragments.add(new Fragment(key.namespace(), key.entity(), key.id(), key.timestamp(), path, type, entry.getKey(), entry.getValue()));
         }
         return fragments.iterator();
     }

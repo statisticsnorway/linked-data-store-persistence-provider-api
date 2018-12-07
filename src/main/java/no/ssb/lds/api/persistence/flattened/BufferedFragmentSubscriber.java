@@ -1,5 +1,6 @@
-package no.ssb.lds.api.persistence.buffered;
+package no.ssb.lds.api.persistence.flattened;
 
+import no.ssb.lds.api.persistence.DocumentKey;
 import no.ssb.lds.api.persistence.streaming.Fragment;
 
 import java.util.ArrayList;
@@ -11,19 +12,19 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class BufferedFragmentSubscriber implements Flow.Subscriber<Fragment> {
+class BufferedFragmentSubscriber implements Flow.Subscriber<Fragment> {
 
-    final CompletableFuture<FlattenedDocumentIterator> result;
-    final int fragmentValueCapacityBytes;
-    final String path;
-    final String value;
-    final int limit;
+    private final CompletableFuture<FlattenedDocumentIterator> result;
+    private final int fragmentValueCapacityBytes;
+    private final String path;
+    private final String value;
+    private final int limit;
 
-    final AtomicReference<Flow.Subscription> subscriptionRef = new AtomicReference<>();
-    final AtomicBoolean limitedMatchesRef = new AtomicBoolean(false);
-    final AtomicReference<DocumentKey> documentKeyRef = new AtomicReference<>();
-    final Map<String, List<Fragment>> fragmentsByPath = new TreeMap<>();
-    final List<FlattenedDocument> documents = new ArrayList<>();
+    private final AtomicReference<Flow.Subscription> subscriptionRef = new AtomicReference<>();
+    private final AtomicBoolean limitedMatchesRef = new AtomicBoolean(false);
+    private final AtomicReference<DocumentKey> documentKeyRef = new AtomicReference<>();
+    private final Map<String, List<Fragment>> fragmentsByPath = new TreeMap<>();
+    private final List<FlattenedDocument> documents = new ArrayList<>();
 
     BufferedFragmentSubscriber(CompletableFuture<FlattenedDocumentIterator> result, int fragmentValueCapacityBytes, String path, String value, int limit) {
         this.result = result;
@@ -67,7 +68,7 @@ public class BufferedFragmentSubscriber implements Flow.Subscriber<Fragment> {
         subscriptionRef.get().request(1);
     }
 
-    void addPendingDocumentAndResetMap() {
+    private void addPendingDocumentAndResetMap() {
         if (!fragmentsByPath.isEmpty()) {
             FlattenedDocument document = FlattenedDocument.decodeDocument(documentKeyRef.get(), fragmentsByPath, fragmentValueCapacityBytes);
             if (path != null) {
@@ -103,6 +104,6 @@ public class BufferedFragmentSubscriber implements Flow.Subscriber<Fragment> {
         result.complete(new FlattenedDocumentIterator(documents));
     }
 
-    void nop() {
+    private void nop() {
     }
 }

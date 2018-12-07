@@ -1,4 +1,4 @@
-package no.ssb.lds.api.persistence.buffered;
+package no.ssb.lds.api.persistence.flattened;
 
 import no.ssb.lds.api.persistence.PersistenceDeletePolicy;
 import no.ssb.lds.api.persistence.PersistenceException;
@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
  * this layer may consume a lot of memory. When the streaming API provides the necessary functionality,
  * it should be used in favor of this layer to achieve predictable memory usage.
  */
-public interface BufferedPersistence {
+public interface FlattenedPersistence {
 
     /**
      * Returns a factory that can be used to create new transactions.

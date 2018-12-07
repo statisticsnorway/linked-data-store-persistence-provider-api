@@ -1,4 +1,4 @@
-package no.ssb.lds.api.persistence.buffered;
+package no.ssb.lds.api.persistence;
 
 import no.ssb.lds.api.persistence.streaming.Fragment;
 
@@ -11,10 +11,10 @@ public class DocumentKey {
         return new DocumentKey(fragment.namespace(), fragment.entity(), fragment.id(), fragment.timestamp());
     }
 
-    final String namespace;
-    final String entity;
-    final String id;
-    final ZonedDateTime timestamp;
+    private final String namespace;
+    private final String entity;
+    private final String id;
+    private final ZonedDateTime timestamp;
 
     public DocumentKey(String namespace, String entity, String id, ZonedDateTime timestamp) {
         this.namespace = namespace;
@@ -23,19 +23,19 @@ public class DocumentKey {
         this.timestamp = timestamp;
     }
 
-    public String getNamespace() {
+    public String namespace() {
         return namespace;
     }
 
-    public String getEntity() {
+    public String entity() {
         return entity;
     }
 
-    public String getId() {
+    public String id() {
         return id;
     }
 
-    public ZonedDateTime getTimestamp() {
+    public ZonedDateTime timestamp() {
         return timestamp;
     }
 

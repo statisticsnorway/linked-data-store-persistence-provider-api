@@ -14,8 +14,8 @@ public class Fragment implements Comparable<Fragment> {
 
     public static final Fragment DONE_NOT_LIMITED = new Fragment(true, NOT_LIMITED_CODE, null, null, null, null, null, null, 0, null);
 
-    public final static Pattern arrayIndexPattern = Pattern.compile("\\[([0-9]*)\\]");
-    public final static Pattern noIndexPattern = Pattern.compile("\\[\\]");
+    private final static Pattern arrayIndexPattern = Pattern.compile("\\[([0-9]*)\\]");
+    private final static Pattern noIndexPattern = Pattern.compile("\\[\\]");
 
     public static String computeIndexUnawarePath(String path, List<Integer> indices) {
         StringBuilder sb = new StringBuilder();
@@ -51,7 +51,7 @@ public class Fragment implements Comparable<Fragment> {
         return sb.toString();
     }
 
-    public static final int TRUNCATED_VALUE_LENGTH = 100;
+    private static final int TRUNCATED_VALUE_LENGTH = 100;
 
     public static byte[] truncate(byte[] value) {
         // TODO use a hashing function (e.g. md5) instead of truncating value
@@ -66,17 +66,17 @@ public class Fragment implements Comparable<Fragment> {
         return truncatedValue;
     }
 
-    final boolean streamingControl;
-    final short controlCode;
+    private final boolean streamingControl;
+    private final short controlCode;
 
-    final String namespace;
-    final String entity;
-    final String id;
-    final ZonedDateTime timestamp;
-    final String path;
-    final FragmentType fragmentType;
-    final long offset;
-    final byte[] value;
+    private final String namespace;
+    private final String entity;
+    private final String id;
+    private final ZonedDateTime timestamp;
+    private final String path;
+    private final FragmentType fragmentType;
+    private final long offset;
+    private final byte[] value;
 
     public Fragment(String namespace, String entity, String id, ZonedDateTime timestamp, String path, FragmentType fragmentType, final long offset, byte[] value) {
         this.streamingControl = false;
