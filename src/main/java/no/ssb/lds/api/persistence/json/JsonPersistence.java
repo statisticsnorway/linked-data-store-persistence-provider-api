@@ -4,6 +4,7 @@ import no.ssb.lds.api.persistence.PersistenceDeletePolicy;
 import no.ssb.lds.api.persistence.PersistenceException;
 import no.ssb.lds.api.persistence.Transaction;
 import no.ssb.lds.api.persistence.TransactionFactory;
+import no.ssb.lds.api.specification.Specification;
 
 import java.time.ZonedDateTime;
 import java.util.concurrent.CompletableFuture;
@@ -36,10 +37,11 @@ public interface JsonPersistence {
      *
      * @param transaction
      * @param document
+     * @param specification
      * @return a completable-future that will be completed when this operation is complete.
      * @throws PersistenceException
      */
-    CompletableFuture<Void> createOrOverwrite(Transaction transaction, JsonDocument document) throws PersistenceException;
+    CompletableFuture<Void> createOrOverwrite(Transaction transaction, JsonDocument document, Specification specification) throws PersistenceException;
 
     /**
      * Attempt to read the document identified by namespace, entity, and id from a snapshot in time of the

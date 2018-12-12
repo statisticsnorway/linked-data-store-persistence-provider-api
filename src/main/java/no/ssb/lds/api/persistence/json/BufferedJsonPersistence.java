@@ -6,6 +6,7 @@ import no.ssb.lds.api.persistence.Transaction;
 import no.ssb.lds.api.persistence.TransactionFactory;
 import no.ssb.lds.api.persistence.flattened.FlattenedDocument;
 import no.ssb.lds.api.persistence.flattened.FlattenedPersistence;
+import no.ssb.lds.api.specification.Specification;
 import org.json.JSONObject;
 
 import java.time.ZonedDateTime;
@@ -32,7 +33,7 @@ public class BufferedJsonPersistence implements JsonPersistence {
     }
 
     @Override
-    public CompletableFuture<Void> createOrOverwrite(Transaction transaction, JsonDocument document) throws PersistenceException {
+    public CompletableFuture<Void> createOrOverwrite(Transaction transaction, JsonDocument document, Specification specification) throws PersistenceException {
         JsonToFlattenedDocument converter = new JsonToFlattenedDocument(document.key().namespace(), document.key().entity(), document.key().id(), document.key().timestamp(), document.document(), fragmentValueCapacityBytes);
         FlattenedDocument flattenedDocument = converter.toDocument();
         return flattenedPersistence.createOrOverwrite(transaction, flattenedDocument);
