@@ -73,12 +73,12 @@ public interface FlattenedPersistence {
      * @param namespace
      * @param entity
      * @param id
-     * @param firstId
+     * @param firstVersion
      * @param limit
      * @return a completable future that will complete with a document-iterator when ready.
      * @throws PersistenceException
      */
-    CompletableFuture<FlattenedDocumentIterator> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, String firstId, int limit) throws PersistenceException;
+    CompletableFuture<FlattenedDocumentIterator> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, ZonedDateTime firstVersion, int limit) throws PersistenceException;
 
     /**
      * Attempt to read all distinct versions of the document identified by namespace, entity, and id given a from - to
@@ -161,7 +161,7 @@ public interface FlattenedPersistence {
      * @return a completable future that will complete with a document-iterator when ready.
      * @throws PersistenceException
      */
-    CompletableFuture<FlattenedDocumentIterator> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, String value, String firstId, int limit) throws PersistenceException;
+    CompletableFuture<FlattenedDocumentIterator> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, Object value, String firstId, int limit) throws PersistenceException;
 
     /**
      * Clean up resources

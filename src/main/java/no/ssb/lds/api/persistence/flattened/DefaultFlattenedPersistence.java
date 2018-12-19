@@ -84,8 +84,8 @@ public class DefaultFlattenedPersistence implements FlattenedPersistence {
         return iteratorCompletableFuture;
     }
 
-    public CompletableFuture<FlattenedDocumentIterator> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, String firstId, int limit) throws PersistenceException {
-        Flow.Publisher<Fragment> publisher = persistence.readVersions(transaction, snapshotFrom, snapshotTo, namespace, entity, id, firstId, limit);
+    public CompletableFuture<FlattenedDocumentIterator> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, ZonedDateTime firstVersion, int limit) throws PersistenceException {
+        Flow.Publisher<Fragment> publisher = persistence.readVersions(transaction, snapshotFrom, snapshotTo, namespace, entity, id, firstVersion, limit);
         CompletableFuture<FlattenedDocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
         publisher.subscribe(new BufferedFragmentSubscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, null, null, limit));
         return iteratorCompletableFuture;
@@ -117,12 +117,13 @@ public class DefaultFlattenedPersistence implements FlattenedPersistence {
         return iteratorCompletableFuture;
     }
 
-    public CompletableFuture<FlattenedDocumentIterator> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, String value, String firstId, int limit) throws PersistenceException {
-        Map<Integer, byte[]> valueByOffset = FlattenedDocumentLeafNode.valueByOffset(FragmentType.STRING, fragmentValueCapacityBytes, value);
+    public CompletableFuture<FlattenedDocumentIterator> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, Object value, String firstId, int limit) throws PersistenceException {
+        // TODO support stronger typing of value
+        Map<Integer, byte[]> valueByOffset = FlattenedDocumentLeafNode.valueByOffset(FragmentType.STRING, fragmentValueCapacityBytes, (String) value);
         byte[] bytesValue = valueByOffset.get(0);
         Flow.Publisher<Fragment> publisher = persistence.find(transaction, snapshot, namespace, entity, path, bytesValue, firstId, Integer.MAX_VALUE);
         CompletableFuture<FlattenedDocumentIterator> iteratorCompletableFuture = new CompletableFuture<>();
-        publisher.subscribe(new BufferedFragmentSubscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, path, value, limit));
+        publisher.subscribe(new BufferedFragmentSubscriber(iteratorCompletableFuture, fragmentValueCapacityBytes, path, (String) value, limit));
         return iteratorCompletableFuture;
     }
 

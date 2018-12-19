@@ -55,8 +55,8 @@ public class BufferedJsonPersistence implements JsonPersistence {
     }
 
     @Override
-    public CompletableFuture<Iterable<JsonDocument>> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, String firstId, int limit) throws PersistenceException {
-        return flattenedPersistence.readVersions(transaction, snapshotFrom, snapshotTo, namespace, entity, id, firstId, limit)
+    public CompletableFuture<Iterable<JsonDocument>> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, ZonedDateTime firstVersion, int limit) throws PersistenceException {
+        return flattenedPersistence.readVersions(transaction, snapshotFrom, snapshotTo, namespace, entity, id, firstVersion, limit)
                 .thenApply(flattenedDocumentIterator -> () -> new JsonDocumentIterator(flattenedDocumentIterator));
     }
 
@@ -88,7 +88,7 @@ public class BufferedJsonPersistence implements JsonPersistence {
     }
 
     @Override
-    public CompletableFuture<Iterable<JsonDocument>> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, String value, String firstId, int limit) throws PersistenceException {
+    public CompletableFuture<Iterable<JsonDocument>> find(Transaction transaction, ZonedDateTime snapshot, String namespace, String entity, String path, Object value, String firstId, int limit) throws PersistenceException {
         return flattenedPersistence.find(transaction, snapshot, namespace, entity, path, value, firstId, limit)
                 .thenApply(flattenedDocumentIterator -> () -> new JsonDocumentIterator(flattenedDocumentIterator));
     }

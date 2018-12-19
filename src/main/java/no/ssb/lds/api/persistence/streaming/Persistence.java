@@ -66,12 +66,12 @@ public interface Persistence {
      * @param namespace
      * @param entity
      * @param id
-     * @param firstId
+     * @param firstVersion
      * @param limit
      * @return a publisher that will produce all matching fragments as a stream.
      * @throws PersistenceException
      */
-    Flow.Publisher<Fragment> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, String firstId, int limit) throws PersistenceException;
+    Flow.Publisher<Fragment> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, ZonedDateTime firstVersion, int limit) throws PersistenceException;
 
     /**
      * Attempt to read all distinct versions of the document identified by namespace, entity, and id given a from - to
