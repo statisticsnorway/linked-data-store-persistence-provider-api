@@ -10,17 +10,17 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-class FlattenedDocumentToJson {
+public class FlattenedDocumentToJson {
 
     static final Pattern arrayNavigationPattern = Pattern.compile("([^\\[]*)\\[([0-9]+)\\]");
 
     final FlattenedDocument document;
 
-    FlattenedDocumentToJson(FlattenedDocument document) {
+    public FlattenedDocumentToJson(FlattenedDocument document) {
         this.document = document;
     }
 
-    JSONObject toJSONObject() {
+    public JSONObject toJSONObject() {
         JSONObject root = new JSONObject();
         for (Map.Entry<String, FlattenedDocumentLeafNode> entry : document.leafNodesByPath().entrySet()) {
             String path = entry.getKey();
