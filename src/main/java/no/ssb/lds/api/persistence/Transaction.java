@@ -24,7 +24,7 @@ public interface Transaction extends AutoCloseable {
             throw new RuntimeException(t);
         } finally {
             if (!committed) {
-                cancel();
+                cancel().join();
             }
         }
     }
