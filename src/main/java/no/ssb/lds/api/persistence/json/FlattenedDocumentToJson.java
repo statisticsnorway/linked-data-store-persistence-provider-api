@@ -82,7 +82,7 @@ public class FlattenedDocumentToJson {
                 } else if (FragmentType.STRING == leafNode.type()) {
                     leaf.put(arrayIndex, leafNode.value());
                 } else if (FragmentType.BOOLEAN == leafNode.type()) {
-                    leaf.put(arrayIndex, leafNode.value());
+                    leaf.put(arrayIndex, Boolean.valueOf((String) leafNode.value()));
                 } else if (FragmentType.EMPTY_ARRAY == leafNode.type()) {
                     leaf.put(arrayIndex, new JSONArray());
                 } else if (FragmentType.EMPTY_OBJECT == leafNode.type()) {
@@ -116,7 +116,7 @@ public class FlattenedDocumentToJson {
                 } else if (FragmentType.STRING == leafNode.type()) {
                     parentOfLeaf.put(leafPathElement, leafNode.value());
                 } else if (FragmentType.BOOLEAN == leafNode.type()) {
-                    parentOfLeaf.put(leafPathElement, leafNode.value());
+                    parentOfLeaf.put(leafPathElement, Boolean.parseBoolean((String) leafNode.value()));
                 } else if (FragmentType.EMPTY_ARRAY == leafNode.type()) {
                     parentOfLeaf.put(leafPathElement, new JSONArray());
                 } else if (FragmentType.EMPTY_OBJECT == leafNode.type()) {
