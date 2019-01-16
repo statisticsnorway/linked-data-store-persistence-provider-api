@@ -38,8 +38,10 @@ public class FlattenedDocumentToJson {
                         parentOfLeaf.put(arrayIdentifier, new JSONArray());
                     }
                     JSONArray array = parentOfLeaf.getJSONArray(arrayIdentifier);
-                    parentOfLeaf = new JSONObject();
-                    array.put(arrayIndex, parentOfLeaf);
+                    if (arrayIndex >= array.length()) {
+                        array.put(arrayIndex, new JSONObject());
+                    }
+                    parentOfLeaf = array.getJSONObject(arrayIndex);
                 } else {
                     // map
                     if (!parentOfLeaf.has(pathElement)) {
