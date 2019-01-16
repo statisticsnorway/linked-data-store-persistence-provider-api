@@ -8,6 +8,7 @@ import org.testng.annotations.Test;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -90,6 +91,37 @@ public class FlattenedDocumentTest {
         lastnameFragments.add(new Fragment(key.namespace(), key.entity(), key.id(), key.timestamp(), "lastname", FragmentType.STRING, 3, "th".getBytes(StandardCharsets.UTF_8)));
 
         FlattenedDocument actual = FlattenedDocument.decodeDocument(key, fragmentsByPath, 3);
+
+        assertEquals(actual, expectedDocument);
+        assertEquals(actual.leafNodesByPath(), expectedDocument.leafNodesByPath());
+    }
+
+    @Test
+    public void thatDecodeDocumentWithComplexArrayWorks() {
+        DocumentKey key = new DocumentKey("ns", "E", "1", ZonedDateTime.now(ZoneId.of("Etc/UTC")));
+
+        Map<String, FlattenedDocumentLeafNode> leafNodesByPath = new LinkedHashMap<>();
+        leafNodesByPath.put("$.name[0].first", new FlattenedDocumentLeafNode(key, "$.name[0].first", FragmentType.STRING, "John", 64));
+        leafNodesByPath.put("$.name[0].last", new FlattenedDocumentLeafNode(key, "$.name[0].last", FragmentType.STRING, "Smith", 64));
+        leafNodesByPath.put("$.name[1].first", new FlattenedDocumentLeafNode(key, "$.name[1].first", FragmentType.STRING, "Jane", 64));
+        leafNodesByPath.put("$.name[1].last", new FlattenedDocumentLeafNode(key, "$.name[1].last", FragmentType.STRING, "Doe", 64));
+        FlattenedDocument expectedDocument = new FlattenedDocument(key, leafNodesByPath, false);
+
+        Map<String, List<Fragment>> fragmentsByPath = new LinkedHashMap<>();
+        List<Fragment> name0First = new ArrayList<>();
+        List<Fragment> name0Last = new ArrayList<>();
+        List<Fragment> name1First = new ArrayList<>();
+        List<Fragment> name1Last = new ArrayList<>();
+        fragmentsByPath.put("$.name[0].first", name0First);
+        fragmentsByPath.put("$.name[0].last", name0Last);
+        fragmentsByPath.put("$.name[1].first", name1First);
+        fragmentsByPath.put("$.name[1].last", name1Last);
+        name0First.add(new Fragment(key.namespace(), key.entity(), key.id(), key.timestamp(), "$.name[0].first", FragmentType.STRING, 0, "John".getBytes(StandardCharsets.UTF_8)));
+        name0Last.add(new Fragment(key.namespace(), key.entity(), key.id(), key.timestamp(), "$.name[0].last", FragmentType.STRING, 0, "Smith".getBytes(StandardCharsets.UTF_8)));
+        name1First.add(new Fragment(key.namespace(), key.entity(), key.id(), key.timestamp(), "$.name[1].first", FragmentType.STRING, 0, "Jane".getBytes(StandardCharsets.UTF_8)));
+        name1Last.add(new Fragment(key.namespace(), key.entity(), key.id(), key.timestamp(), "$.name[1].last", FragmentType.STRING, 0, "Doe".getBytes(StandardCharsets.UTF_8)));
+
+        FlattenedDocument actual = FlattenedDocument.decodeDocument(key, fragmentsByPath, 64);
 
         assertEquals(actual, expectedDocument);
         assertEquals(actual.leafNodesByPath(), expectedDocument.leafNodesByPath());
