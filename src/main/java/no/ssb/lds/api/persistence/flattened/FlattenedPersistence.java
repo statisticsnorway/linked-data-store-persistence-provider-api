@@ -4,6 +4,7 @@ import no.ssb.lds.api.persistence.PersistenceDeletePolicy;
 import no.ssb.lds.api.persistence.PersistenceException;
 import no.ssb.lds.api.persistence.Transaction;
 import no.ssb.lds.api.persistence.TransactionFactory;
+import no.ssb.lds.api.persistence.streaming.Persistence;
 
 import java.time.ZonedDateTime;
 import java.util.concurrent.CompletableFuture;
@@ -17,6 +18,8 @@ import java.util.concurrent.CompletableFuture;
  * it should be used in favor of this layer to achieve predictable memory usage.
  */
 public interface FlattenedPersistence {
+
+    Persistence getPersistence();
 
     /**
      * Returns a factory that can be used to create new transactions.

@@ -6,6 +6,7 @@ import no.ssb.lds.api.persistence.Transaction;
 import no.ssb.lds.api.persistence.TransactionFactory;
 import no.ssb.lds.api.persistence.flattened.FlattenedDocument;
 import no.ssb.lds.api.persistence.flattened.FlattenedPersistence;
+import no.ssb.lds.api.persistence.streaming.Persistence;
 import no.ssb.lds.api.specification.Specification;
 import org.json.JSONObject;
 
@@ -20,6 +21,11 @@ public class BufferedJsonPersistence implements JsonPersistence {
     public BufferedJsonPersistence(FlattenedPersistence flattenedPersistence, int fragmentValueCapacityBytes) {
         this.flattenedPersistence = flattenedPersistence;
         this.fragmentValueCapacityBytes = fragmentValueCapacityBytes;
+    }
+
+    @Override
+    public Persistence getPersistence() {
+        return flattenedPersistence.getPersistence();
     }
 
     @Override

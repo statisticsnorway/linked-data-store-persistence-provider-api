@@ -10,6 +10,8 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -88,14 +90,14 @@ public class FlattenedDocument {
         return allDocumentFragments.iterator();
     }
 
-    static FlattenedDocument decodeDocument(DocumentKey documentKey, Map<String, List<Fragment>> fragmentsByPath, int fragmentValueCapacityBytes) {
+    public static FlattenedDocument decodeDocument(DocumentKey documentKey, Map<String, ? extends Collection<Fragment>> fragmentsByPath, int fragmentValueCapacityBytes) {
         TreeMap<String, FlattenedDocumentLeafNode> leafNodesByPath = new TreeMap<>();
         CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
         CharBuffer out = CharBuffer.allocate(256);
         boolean deleted = false;
-        for (Map.Entry<String, List<Fragment>> entry : fragmentsByPath.entrySet()) {
+        for (Map.Entry<String, ? extends Collection<Fragment>> entry : fragmentsByPath.entrySet()) {
             String path = entry.getKey();
-            List<Fragment> fragments = entry.getValue();
+            List<Fragment> fragments = new ArrayList<>(entry.getValue());
             if (fragments.isEmpty()) {
                 throw new IllegalStateException("No fragments for path: " + path);
             }
