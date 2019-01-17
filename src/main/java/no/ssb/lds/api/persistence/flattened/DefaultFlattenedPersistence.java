@@ -27,6 +27,11 @@ public class DefaultFlattenedPersistence implements FlattenedPersistence {
     }
 
     @Override
+    public Persistence getPersistence() {
+        return persistence;
+    }
+
+    @Override
     public TransactionFactory transactionFactory() throws PersistenceException {
         return persistence.transactionFactory();
     }
