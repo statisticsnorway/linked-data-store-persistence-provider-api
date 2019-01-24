@@ -62,6 +62,9 @@ public class BufferedJsonPersistence implements JsonPersistence {
 
     @Override
     public CompletableFuture<Iterable<JsonDocument>> readVersions(Transaction transaction, ZonedDateTime snapshotFrom, ZonedDateTime snapshotTo, String namespace, String entity, String id, ZonedDateTime firstVersion, int limit) throws PersistenceException {
+        if (snapshotFrom.isAfter(snapshotTo)) {
+            throw new IllegalArgumentException("Negative time period! snapshotFrom must come before snapshotTo");
+        }
         return flattenedPersistence.readVersions(transaction, snapshotFrom, snapshotTo, namespace, entity, id, firstVersion, limit)
                 .thenApply(flattenedDocumentIterator -> () -> new JsonDocumentIterator(flattenedDocumentIterator));
     }
