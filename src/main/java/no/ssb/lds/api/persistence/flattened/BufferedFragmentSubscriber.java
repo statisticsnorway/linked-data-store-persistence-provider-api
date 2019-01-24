@@ -23,6 +23,9 @@ class BufferedFragmentSubscriber implements Flow.Subscriber<Fragment> {
     private final AtomicReference<Flow.Subscription> subscriptionRef = new AtomicReference<>();
     private final AtomicBoolean limitedMatchesRef = new AtomicBoolean(false);
     private final AtomicReference<DocumentKey> documentKeyRef = new AtomicReference<>();
+
+    // mutable data that must be protected by lock
+    private final Object lock = new Object();
     private final Map<String, List<Fragment>> fragmentsByPath = new TreeMap<>();
     private final List<FlattenedDocument> documents = new ArrayList<>();
 
@@ -42,27 +45,30 @@ class BufferedFragmentSubscriber implements Flow.Subscriber<Fragment> {
 
     @Override
     public void onNext(Fragment fragment) {
-        if (fragment.isStreamingControl()) {
-            limitedMatchesRef.set(fragment.isLimited());
-            return;
-        }
+        synchronized (lock) {
 
-        if (documents.size() >= limit) {
-            // document limit reached
-            subscriptionRef.get().cancel();
-            return;
-        }
+            if (fragment.isStreamingControl()) {
+                limitedMatchesRef.set(fragment.isLimited());
+                return;
+            }
 
-        DocumentKey fragmentDocumentKey = DocumentKey.from(fragment);
+            if (documents.size() >= limit) {
+                // document limit reached
+                subscriptionRef.get().cancel();
+                return;
+            }
 
-        documentKeyRef.compareAndSet(null, fragmentDocumentKey);
+            DocumentKey fragmentDocumentKey = DocumentKey.from(fragment);
 
-        if (documentKeyRef.get().equals(fragmentDocumentKey)) {
-            fragmentsByPath.computeIfAbsent(fragment.path(), path -> new ArrayList<>()).add(fragment);
-        } else {
-            addPendingDocumentAndResetMap();
-            fragmentsByPath.computeIfAbsent(fragment.path(), path -> new ArrayList<>()).add(fragment);
-            documentKeyRef.set(fragmentDocumentKey);
+            documentKeyRef.compareAndSet(null, fragmentDocumentKey);
+
+            if (documentKeyRef.get().equals(fragmentDocumentKey)) {
+                fragmentsByPath.computeIfAbsent(fragment.path(), path -> new ArrayList<>()).add(fragment);
+            } else {
+                addPendingDocumentAndResetMap();
+                fragmentsByPath.computeIfAbsent(fragment.path(), path -> new ArrayList<>()).add(fragment);
+                documentKeyRef.set(fragmentDocumentKey);
+            }
         }
 
         subscriptionRef.get().request(1);
@@ -100,7 +106,9 @@ class BufferedFragmentSubscriber implements Flow.Subscriber<Fragment> {
 
     @Override
     public void onComplete() {
-        addPendingDocumentAndResetMap();
+        synchronized (lock) {
+            addPendingDocumentAndResetMap();
+        }
         result.complete(new FlattenedDocumentIterator(documents));
     }
 
