@@ -1,6 +1,7 @@
 package no.ssb.lds.api.persistence;
 
 import no.ssb.lds.api.persistence.json.JsonPersistence;
+import no.ssb.lds.api.persistence.reactivex.RxJsonPersistence;
 
 import java.util.Map;
 import java.util.Set;
@@ -11,5 +12,5 @@ public interface PersistenceInitializer {
 
     Set<String> configurationKeys();
 
-    JsonPersistence initialize(String defaultNamespace, Map<String, String> configuration, Set<String> managedDomains);
+    RxJsonPersistence initialize(String defaultNamespace, Map<String, String> configuration, Set<String> managedDomains);
 }
