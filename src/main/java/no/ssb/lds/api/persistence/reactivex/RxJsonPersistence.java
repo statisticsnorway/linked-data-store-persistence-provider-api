@@ -47,6 +47,20 @@ public interface RxJsonPersistence {
                                          Range<String> range);
 
     /**
+     * Read {@link JsonDocument}s.
+     * <p>
+     * TODO: onError(PersistenceException) in case of persistence exception
+     *
+     * @param tx         the transaction
+     * @param ns         the name space
+     * @param entityName the entity name
+     * @param range      lower and upper id bounds
+     */
+    Flowable<JsonDocument> readDocumentVersions(Transaction tx, String ns, String entityName, String id,
+                                                Range<ZonedDateTime> range);
+
+
+    /**
      * Read {@link JsonDocument}s linked to another document.
      * <p>
      * TODO: onError(PersistenceException) in case of persistence exception
@@ -109,4 +123,12 @@ public interface RxJsonPersistence {
      */
     Transaction createTransaction(boolean readOnly) throws PersistenceException;
 
+    Flowable<JsonDocument> findDocument(Transaction tx, ZonedDateTime snapshot, String namespace, String entityName, String path, String value, Range<String> range);
+
+    /**
+     * Clean up resources
+     *
+     * @throws PersistenceException
+     */
+    void close() throws PersistenceException;
 }

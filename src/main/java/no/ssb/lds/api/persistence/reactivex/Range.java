@@ -43,7 +43,7 @@ public class Range<T> {
         return new Range<>(after, before, null, n);
     }
 
-    static <T> Range<T> unbounded() {
+    public static <T> Range<T> unbounded() {
         return new Range<>(null, null, null, null);
     }
 

@@ -59,6 +59,8 @@ public class RxPersistenceBridge implements RxPersistence {
                 fragments = fragments.take(range.getLast());
             }
         } else {
+            // TODO: Define the contract precisely. Foundation DB does not honor order defined in Fragment.
+            fragments = fragments.sorted();
             if (range.hasAfter()) {
                 fragments = fragments.skipWhile(fragment ->
                         keyExtractor.apply(fragment).compareTo(range.getAfter()) <= 0);
