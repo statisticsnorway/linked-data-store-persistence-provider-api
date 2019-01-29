@@ -41,7 +41,7 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
     }
 
     static Maybe<JsonDocument> doReadDocument(Flowable<Fragment> fragments, int fragmentSize) {
-        return toDocuments(fragments, fragmentSize, false).singleElement();
+        return toDocuments(fragments, fragmentSize, false).firstElement();
     }
 
     /**
