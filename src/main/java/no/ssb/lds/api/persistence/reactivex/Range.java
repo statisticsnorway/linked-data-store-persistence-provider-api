@@ -54,7 +54,7 @@ public class Range<T> {
     @Override
     public String toString() {
         StringJoiner joiner = new StringJoiner(", ", Range.class.getSimpleName() + "[", "]");
-        String range = "[ " + (hasAfter() ? after : "...") + " : " + (hasBefore() ? before : "...") + " ]";
+        String range = "[" + (hasAfter() ? after : "...") + ":" + (hasBefore() ? before : "...") + "]";
         joiner.add("range=" + range);
 
         if (hasFirst()) {
@@ -82,22 +82,52 @@ public class Range<T> {
         return after;
     }
 
+    /**
+     * Returns <i>true</i> if the stream should be read backward.
+     */
     public boolean isBackward() {
-        return hasLast() || hasBefore() && !hasAfter(); // || first == null && before != null;
+        return hasLast() || hasBefore() && !hasAfter();
     }
 
+    /**
+     * Returns <i>true</i> if either {@link #hasFirst()} or {@link #hasLast()} returns true.
+     */
+    public boolean isLimited() {
+        return hasFirst() || hasLast();
+    }
+
+    /**
+     * Returns {@link #getFirst()} or {@link #getLast()} if {@link #hasFirst()} or {@link #hasLast()} returns true,
+     * respectively.
+     */
+    public Integer getLimit() {
+        return hasFirst() ? getFirst() : hasLast() ? getLast() : null;
+    }
+
+    /**
+     * Returns <i>true</i> if this range is defined with a before upper-bound.
+     */
     public boolean hasBefore() {
         return before != null;
     }
 
+    /**
+     * Returns <i>true</i> if this range is defined with a after lower-bound.
+     */
     public boolean hasAfter() {
         return after != null;
     }
 
+    /**
+     * Returns <i>true</i> if this range is defined with a last limit (upper-bound limit).
+     */
     public boolean hasLast() {
         return last != null;
     }
 
+    /**
+     * Returns <i>true</i> if this range is defined with a first limit (lower-bound limit).
+     */
     public boolean hasFirst() {
         return first != null;
     }
