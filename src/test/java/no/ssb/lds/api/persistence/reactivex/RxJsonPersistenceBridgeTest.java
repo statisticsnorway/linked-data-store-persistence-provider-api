@@ -2,16 +2,17 @@ package no.ssb.lds.api.persistence.reactivex;
 
 import io.reactivex.Flowable;
 import io.reactivex.Maybe;
-import io.reactivex.functions.Predicate;
 import no.ssb.lds.api.persistence.DocumentKey;
 import no.ssb.lds.api.persistence.json.JsonDocument;
 import no.ssb.lds.api.persistence.json.JsonToFlattenedDocument;
 import no.ssb.lds.api.persistence.streaming.Fragment;
 import no.ssb.lds.api.persistence.streaming.FragmentType;
+import org.assertj.core.api.Condition;
 import org.json.JSONObject;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,10 +20,10 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import static com.github.nomisrev.rx2assertj.Rx2Assertions.assertThat;
 import static java.time.ZonedDateTime.parse;
 import static no.ssb.lds.api.persistence.reactivex.RxJsonPersistenceBridge.doReadDocument;
 import static no.ssb.lds.api.persistence.reactivex.RxJsonPersistenceBridge.doReadDocuments;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class RxJsonPersistenceBridgeTest {
 
@@ -37,9 +38,9 @@ public class RxJsonPersistenceBridgeTest {
         return flattenedDocument.toDocument().fragmentIterator();
     }
 
-    private static Predicate<JsonDocument> thatIsEqualTo(JsonDocument document) {
-        return returnedDocument -> returnedDocument.key().equals(document.key())
-                && returnedDocument.document().similar(document.document());
+    private static Condition<JsonDocument> thatIsEqualTo(JsonDocument document) {
+        return new Condition<>(returnedDocument -> returnedDocument.key().equals(document.key())
+                && returnedDocument.document().similar(document.document()), "similar documents");
     }
 
     @BeforeMethod
@@ -56,7 +57,7 @@ public class RxJsonPersistenceBridgeTest {
         Flowable<Fragment> fragmentFlowable = Flowable.fromIterable(fragments);
 
         Maybe<JsonDocument> map = doReadDocument(fragmentFlowable, capacity);
-        assertThat(map).hasSingleValue(thatIsEqualTo(document));
+        assertThat(map.blockingGet()).is(thatIsEqualTo(document));
     }
 
     @Test
@@ -69,15 +70,24 @@ public class RxJsonPersistenceBridgeTest {
         }
         Flowable<Fragment> fragmentFlowable = Flowable.fromIterable(fragments);
 
+        Comparator<JsonDocument> byKeyAndJsonValue = Comparator
+                .comparing(JsonDocument::key, (o1, o2) -> o1.equals(o2) ? 0 : -1)
+                .thenComparing(JsonDocument::document, (o1, o2) -> o1.similar(o2) ? 0 : -1);
+
         Flowable<JsonDocument> betweenThreeAndNine = doReadDocuments(fragmentFlowable,
                 Range.between("id03", "id09"), capacity);
-        assertThat(betweenThreeAndNine)
-                .hasValueAt(0, thatIsEqualTo(createDocument("id04")))
-                .hasValueAt(1, thatIsEqualTo(createDocument("id05")))
-                .hasValueAt(2, thatIsEqualTo(createDocument("id06")))
-                .hasValueAt(3, thatIsEqualTo(createDocument("id07")))
-                .hasValueAt(4, thatIsEqualTo(createDocument("id08")));
+        assertThat(betweenThreeAndNine.blockingIterable())
+                .usingElementComparator(byKeyAndJsonValue)
+                .containsExactly(
+                        createDocument("id04"),
+                        createDocument("id05"),
+                        createDocument("id06"),
+                        createDocument("id07"),
+                        createDocument("id08")
+                );
     }
+
+
 
     private JsonDocument createDocument(String id) {
         return new JsonDocument(
