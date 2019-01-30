@@ -16,12 +16,13 @@ import no.ssb.lds.api.persistence.json.JsonToFlattenedDocument;
 import no.ssb.lds.api.persistence.streaming.Fragment;
 import no.ssb.lds.api.persistence.streaming.FragmentType;
 import no.ssb.lds.api.specification.Specification;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.Collections;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -185,7 +186,7 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
             Object map = document.document().toMap();
             for (String field : path.split("\\.")) {
                 if (!field.equals("$")) {
-                    map = ((Map<String, Object>)map).get(field);
+                    map = ((Map<String, Object>) map).get(field);
                 }
             }
             if (map instanceof String) {
@@ -202,8 +203,13 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
                                                       Range<String> range) {
         // TODO support this in RxPersistence.
         return readDocument(tx, snapshot, ns, entityName, id).flattenAsFlowable(document -> {
-            return (List<String>) document.document().toMap().get(relationName);
-        }).concatMapMaybe(value -> {
+            JSONObject obj = document.document();
+            if (!obj.has(relationName)) {
+                return Collections.emptyList();
+            }
+            JSONArray jsonArray = obj.getJSONArray(relationName);
+            return jsonArray.toList();
+        }).cast(String.class).concatMapMaybe(value -> {
             Matcher matcher = LINK_PATTERN.matcher(value);
             if (matcher.matches()) {
                 String otherId = matcher.group("id");
