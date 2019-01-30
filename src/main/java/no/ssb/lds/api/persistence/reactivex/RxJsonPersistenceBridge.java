@@ -18,7 +18,9 @@ import no.ssb.lds.api.persistence.streaming.FragmentType;
 import no.ssb.lds.api.specification.Specification;
 import org.json.JSONObject;
 
+import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -123,7 +125,9 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
 
     static Flowable<JsonDocument> doReadDocumentVersions(Flowable<Fragment> fragments, Range<ZonedDateTime> range, int fragmentSize) {
         Flowable<JsonDocument> documents = toDocuments(fragments, fragmentSize, true);
-        return limit(documents, document -> document.key().timestamp(), range);
+        // TODO: ZonedDateTime is a bad choice for API. Internal temporal values should be Instant.
+        Range<Instant> instantRange = Range.copy(range, zonedDateTime -> zonedDateTime.toInstant());
+        return limit(documents, document -> document.key().timestamp().toInstant(), instantRange);
     }
 
     static Flowable<JsonDocument> doFindDocuments(Flowable<Fragment> fragments, Range<String> range, int fragmentSize) {
@@ -139,16 +143,26 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
 
     @Override
     public Flowable<JsonDocument> readDocuments(Transaction tx, ZonedDateTime snapshot, String ns, String entityName, Range<String> range) {
-        Flowable<Fragment> fragments = persistence.readAll(tx, snapshot, ns, entityName,
-                Range.between(range.getAfter(), range.getBefore()));
+        Flowable<Fragment> fragments = persistence.readAll(tx, snapshot, ns, entityName, Range.unlimited(range));
+
+        // Resort.
+        fragments = range.isBackward()
+                ? fragments.sorted(Comparator.reverseOrder())
+                : fragments.sorted();
+
         return doReadDocuments(fragments, range, fragmentSize);
     }
 
     @Override
     public Flowable<JsonDocument> readDocumentVersions(Transaction tx, String ns, String entityName, String id,
                                                        Range<ZonedDateTime> range) {
-        Flowable<Fragment> fragments = persistence.readVersions(tx, ns, entityName, id, Range.between(range.getAfter(),
-                range.getBefore()));
+        Flowable<Fragment> fragments = persistence.readVersions(tx, ns, entityName, id, Range.unlimited(range));
+
+        // Resort.
+        fragments = range.isBackward()
+                ? fragments.sorted(Comparator.reverseOrder())
+                : fragments.sorted();
+
         return doReadDocumentVersions(fragments, range, fragmentSize);
     }
 
@@ -159,7 +173,13 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
         Map<Integer, byte[]> valueByOffset = FlattenedDocumentLeafNode.valueByOffset(FragmentType.STRING, fragmentSize, value);
         byte[] bytesValue = valueByOffset.get(0);
         Flowable<Fragment> fragments = persistence.find(tx, snapshot, namespace, entityName, path, bytesValue,
-                Range.between(range.getAfter(), range.getBefore()));
+                Range.unlimited(range));
+
+        // Resort.
+        fragments = range.isBackward()
+                ? fragments.sorted(Comparator.reverseOrder())
+                : fragments.sorted();
+
         return doFindDocuments(fragments, range, fragmentSize).filter(document -> {
             // Post filter since fragment based implementation can return false positive.
             Object map = document.document().toMap();

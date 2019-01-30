@@ -12,7 +12,9 @@ import no.ssb.lds.api.persistence.TransactionFactory;
 import no.ssb.lds.api.persistence.streaming.Fragment;
 import no.ssb.lds.api.persistence.streaming.Persistence;
 
+import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.time.chrono.ChronoZonedDateTime;
 import java.util.Comparator;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -32,7 +34,8 @@ public class RxPersistenceBridge implements RxPersistence {
 
     // TODO: Maybe refactor to use Range<Fragment> instead? It's a low level API anyways.
     static Flowable<Fragment> doReadVersions(Flowable<Fragment> fragments, Range<ZonedDateTime> range) {
-        return limit(fragments, Fragment::timestamp, range);
+        Range<Instant> instantRange = Range.copy(range, ChronoZonedDateTime::toInstant);
+        return limit(fragments, fragment -> fragment.timestamp().toInstant(), instantRange);
     }
 
     static Flowable<Fragment> doReadAll(Flowable<Fragment> fragments, Range<String> range) {

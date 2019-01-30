@@ -9,11 +9,11 @@ import java.time.ZonedDateTime;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import static com.github.nomisrev.rx2assertj.Rx2Assertions.assertThat;
 import static java.time.ZonedDateTime.parse;
 import static no.ssb.lds.api.persistence.reactivex.RxPersistenceBridge.doFind;
 import static no.ssb.lds.api.persistence.reactivex.RxPersistenceBridge.doReadAll;
 import static no.ssb.lds.api.persistence.reactivex.RxPersistenceBridge.doReadVersions;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class RxPersistenceBridgeTest {
 
@@ -44,8 +44,8 @@ public class RxPersistenceBridgeTest {
         Flowable<Fragment> fragmentFlowable = Flowable.fromIterable(fragments);
 
         Flowable<Fragment> firstSixAfterMars = doReadVersions(fragmentFlowable, Range.firstAfter(6, timestamp.withMonth(3)));
-        assertThat(firstSixAfterMars)
-                .hasResult(
+        assertThat(firstSixAfterMars.blockingIterable())
+                .containsExactly(
                         createFragmentWithSnapshot(timestamp.withMonth(4)),
                         createFragmentWithSnapshot(timestamp.withMonth(5)),
                         createFragmentWithSnapshot(timestamp.withMonth(6)),
@@ -55,8 +55,8 @@ public class RxPersistenceBridgeTest {
                 );
 
         Flowable<Fragment> lastSixBeforeOctober = doReadVersions(fragmentFlowable, Range.lastBefore(6, timestamp.withMonth(10)));
-        assertThat(lastSixBeforeOctober)
-                .hasResult(
+        assertThat(lastSixBeforeOctober.blockingIterable())
+                .containsExactly(
                         createFragmentWithSnapshot(timestamp.withMonth(9)),
                         createFragmentWithSnapshot(timestamp.withMonth(8)),
                         createFragmentWithSnapshot(timestamp.withMonth(7)),
@@ -67,8 +67,8 @@ public class RxPersistenceBridgeTest {
 
         Flowable<Fragment> firstThreeBetweenAprilAndSeptember = doReadVersions(fragmentFlowable, Range.firstBetween(
                 3, timestamp.withMonth(4), timestamp.withMonth(9)));
-        assertThat(firstThreeBetweenAprilAndSeptember)
-                .hasResult(
+        assertThat(firstThreeBetweenAprilAndSeptember.blockingIterable())
+                .containsExactly(
                         createFragmentWithSnapshot(timestamp.withMonth(5)),
                         createFragmentWithSnapshot(timestamp.withMonth(6)),
                         createFragmentWithSnapshot(timestamp.withMonth(7))
@@ -76,25 +76,25 @@ public class RxPersistenceBridgeTest {
 
         Flowable<Fragment> lastThreeBetweenAprilAndSeptember = doReadVersions(fragmentFlowable, Range.lastBetween(
                 3, timestamp.withMonth(4), timestamp.withMonth(9)));
-        assertThat(lastThreeBetweenAprilAndSeptember)
-                .hasResult(
+        assertThat(lastThreeBetweenAprilAndSeptember.blockingIterable())
+                .containsExactly(
                         createFragmentWithSnapshot(timestamp.withMonth(8)),
                         createFragmentWithSnapshot(timestamp.withMonth(7)),
                         createFragmentWithSnapshot(timestamp.withMonth(6))
                 );
 
         Flowable<Fragment> all = doReadVersions(fragmentFlowable, Range.unbounded());
-        assertThat(all).hasResult(fragments.toArray(Fragment[]::new));
+        assertThat(all.blockingIterable()).containsExactly(fragments.toArray(Fragment[]::new));
 
         Flowable<Fragment> firstThree = doReadVersions(fragmentFlowable, Range.first(3));
-        assertThat(firstThree).hasResult(
+        assertThat(firstThree.blockingIterable()).containsExactly(
                 createFragmentWithSnapshot(timestamp.withMonth(1)),
                 createFragmentWithSnapshot(timestamp.withMonth(2)),
                 createFragmentWithSnapshot(timestamp.withMonth(3))
         );
 
         Flowable<Fragment> lastThree = doReadVersions(fragmentFlowable, Range.last(3));
-        assertThat(lastThree).hasResult(
+        assertThat(lastThree.blockingIterable()).containsExactly(
                 createFragmentWithSnapshot(timestamp.withMonth(12)),
                 createFragmentWithSnapshot(timestamp.withMonth(11)),
                 createFragmentWithSnapshot(timestamp.withMonth(10))
@@ -112,8 +112,8 @@ public class RxPersistenceBridgeTest {
         Flowable<Fragment> fragmentFlowable = Flowable.fromIterable(fragments);
 
         Flowable<Fragment> firstSixAfterThree = doFind(fragmentFlowable, Range.firstAfter(6, "id03"));
-        assertThat(firstSixAfterThree)
-                .hasResult(
+        assertThat(firstSixAfterThree.blockingIterable())
+                .containsExactly(
                         createFragmentWithIdAndPath("id04", "pathA"),
                         createFragmentWithIdAndPath("id04", "pathB"),
                         createFragmentWithIdAndPath("id05", "pathA"),
@@ -123,8 +123,8 @@ public class RxPersistenceBridgeTest {
                 );
 
         Flowable<Fragment> lastSixBeforeTen = doFind(fragmentFlowable, Range.lastBefore(6, "id10"));
-        assertThat(lastSixBeforeTen)
-                .hasResult(
+        assertThat(lastSixBeforeTen.blockingIterable())
+                .containsExactly(
                         createFragmentWithIdAndPath("id09", "pathB"),
                         createFragmentWithIdAndPath("id09", "pathA"),
                         createFragmentWithIdAndPath("id08", "pathB"),
@@ -135,8 +135,8 @@ public class RxPersistenceBridgeTest {
 
         Flowable<Fragment> firstThreeBetweenFourAndNine = doFind(fragmentFlowable, Range.firstBetween(
                 6, "id04", "id09"));
-        assertThat(firstThreeBetweenFourAndNine)
-                .hasResult(
+        assertThat(firstThreeBetweenFourAndNine.blockingIterable())
+                .containsExactly(
                         createFragmentWithIdAndPath("id05", "pathA"),
                         createFragmentWithIdAndPath("id05", "pathB"),
                         createFragmentWithIdAndPath("id06", "pathA"),
@@ -147,8 +147,8 @@ public class RxPersistenceBridgeTest {
 
         Flowable<Fragment> lastThreeBetweenFourAndNine = doFind(fragmentFlowable, Range.lastBetween(
                 6, "id04", "id09"));
-        assertThat(lastThreeBetweenFourAndNine)
-                .hasResult(
+        assertThat(lastThreeBetweenFourAndNine.blockingIterable())
+                .containsExactly(
                         createFragmentWithIdAndPath("id08", "pathB"),
                         createFragmentWithIdAndPath("id08", "pathA"),
                         createFragmentWithIdAndPath("id07", "pathB"),
@@ -158,17 +158,17 @@ public class RxPersistenceBridgeTest {
                 );
 
         Flowable<Fragment> all = doFind(fragmentFlowable, Range.unbounded());
-        assertThat(all).hasResult(fragments.toArray(Fragment[]::new));
+        assertThat(all.blockingIterable()).containsExactly(fragments.toArray(Fragment[]::new));
 
         Flowable<Fragment> firstThree = doFind(fragmentFlowable, Range.first(3));
-        assertThat(firstThree).hasResult(
+        assertThat(firstThree.blockingIterable()).containsExactly(
                 createFragmentWithIdAndPath("id00", "pathA"),
                 createFragmentWithIdAndPath("id00", "pathB"),
                 createFragmentWithIdAndPath("id01", "pathA")
         );
 
         Flowable<Fragment> lastThree = doFind(fragmentFlowable, Range.last(3));
-        assertThat(lastThree).hasResult(
+        assertThat(lastThree.blockingIterable()).containsExactly(
                 createFragmentWithIdAndPath("id11", "pathB"),
                 createFragmentWithIdAndPath("id11", "pathA"),
                 createFragmentWithIdAndPath("id10", "pathB")
@@ -186,8 +186,8 @@ public class RxPersistenceBridgeTest {
         Flowable<Fragment> fragmentFlowable = Flowable.fromIterable(fragments);
 
         Flowable<Fragment> firstSixAfterThree = doReadAll(fragmentFlowable, Range.firstAfter(6, "id03"));
-        assertThat(firstSixAfterThree)
-                .hasResult(
+        assertThat(firstSixAfterThree.blockingIterable())
+                .containsExactly(
                         createFragmentWithId("id04"),
                         createFragmentWithId("id05"),
                         createFragmentWithId("id06"),
@@ -197,8 +197,8 @@ public class RxPersistenceBridgeTest {
                 );
 
         Flowable<Fragment> lastSixBeforeTen = doReadAll(fragmentFlowable, Range.lastBefore(6, "id10"));
-        assertThat(lastSixBeforeTen)
-                .hasResult(
+        assertThat(lastSixBeforeTen.blockingIterable())
+                .containsExactly(
                         createFragmentWithId("id09"),
                         createFragmentWithId("id08"),
                         createFragmentWithId("id07"),
@@ -209,33 +209,33 @@ public class RxPersistenceBridgeTest {
 
         Flowable<Fragment> firstThreeBetweenFourAndNine = doReadAll(fragmentFlowable, Range.firstBetween(
                 3, "id04", "id09"));
-        assertThat(firstThreeBetweenFourAndNine)
-                .hasResult(
+        assertThat(firstThreeBetweenFourAndNine.blockingIterable())
+                .containsExactly(
                         createFragmentWithId("id05"),
                         createFragmentWithId("id06"),
                         createFragmentWithId("id07")
                 );
 
         Flowable<Fragment> lastThreeBetweenFourAndNine = doReadAll(fragmentFlowable, Range.lastBetween(3, "id04", "id09"));
-        assertThat(lastThreeBetweenFourAndNine)
-                .hasResult(
+        assertThat(lastThreeBetweenFourAndNine.blockingIterable())
+                .containsExactly(
                         createFragmentWithId("id08"),
                         createFragmentWithId("id07"),
                         createFragmentWithId("id06")
                 );
 
         Flowable<Fragment> all = doReadAll(fragmentFlowable, Range.unbounded());
-        assertThat(all).hasResult(fragments.toArray(Fragment[]::new));
+        assertThat(all.blockingIterable()).containsExactly(fragments.toArray(Fragment[]::new));
 
         Flowable<Fragment> firstThree = doReadAll(fragmentFlowable, Range.first(3));
-        assertThat(firstThree).hasResult(
+        assertThat(firstThree.blockingIterable()).containsExactly(
                 createFragmentWithId("id00"),
                 createFragmentWithId("id01"),
                 createFragmentWithId("id02")
         );
 
         Flowable<Fragment> lastThree = doReadVersions(fragmentFlowable, Range.last(3));
-        assertThat(lastThree).hasResult(
+        assertThat(lastThree.blockingIterable()).containsExactly(
                 createFragmentWithId("id11"),
                 createFragmentWithId("id10"),
                 createFragmentWithId("id09")

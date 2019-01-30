@@ -1,6 +1,8 @@
 package no.ssb.lds.api.persistence.reactivex;
 
+import java.util.Optional;
 import java.util.StringJoiner;
+import java.util.function.Function;
 
 public class Range<T> {
 
@@ -17,6 +19,26 @@ public class Range<T> {
         this.after = after;
         this.first = first;
         this.last = last;
+    }
+
+    public static <T,F> Range<T> copy(Range<F> original, Function<F, T> mapper) {
+        return new Range<>(
+                Optional.ofNullable(original.after).map(mapper).orElse(null),
+                Optional.ofNullable(original.before).map(mapper).orElse(null),
+                original.first,
+                original.last
+        );
+    }
+
+    public static <T> Range<T> copy(Range<T> original) {
+        return copy(original, t -> t);
+    }
+
+    public static <T> Range<T> unlimited(Range<T> original) {
+        return new Range<>(
+                original.after, original.before,
+                null, null
+        );
     }
 
     public static <T> Range<T> first(Integer n) {
