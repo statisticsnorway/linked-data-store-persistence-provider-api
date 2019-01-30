@@ -5,7 +5,7 @@ import java.util.function.Function;
 
 public interface TransactionFactory {
 
-    <T> CompletableFuture<T> runAsyncInIsolatedTransaction(Function<? super Transaction, ? extends CompletableFuture<T>> retryable);
+    <T> CompletableFuture<T> runAsyncInIsolatedTransaction(Function<? super Transaction, ? extends T> retryable, boolean readOnly);
 
     /**
      * Create a new transaction.
