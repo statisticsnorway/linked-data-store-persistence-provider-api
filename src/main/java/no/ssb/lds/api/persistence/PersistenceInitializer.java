@@ -1,6 +1,5 @@
 package no.ssb.lds.api.persistence;
 
-import no.ssb.lds.api.persistence.json.JsonPersistence;
 import no.ssb.lds.api.persistence.reactivex.RxJsonPersistence;
 
 import java.util.Map;
