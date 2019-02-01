@@ -200,7 +200,7 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
     @Override
     public Flowable<JsonDocument> readLinkedDocuments(Transaction tx, ZonedDateTime snapshot, String ns,
                                                       String entityName, String id, String relationName,
-                                                      Range<String> range) {
+                                                      String targetEntityName, Range<String> range) {
         // TODO support this in RxPersistence.
         return readDocument(tx, snapshot, ns, entityName, id).flattenAsFlowable(document -> {
             JSONObject obj = document.document();
@@ -213,8 +213,7 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
             Matcher matcher = LINK_PATTERN.matcher(value);
             if (matcher.matches()) {
                 String otherId = matcher.group("id");
-                String otherEntity = matcher.group("entity");
-                return readDocument(tx, snapshot, ns, otherEntity, otherId);
+                return readDocument(tx, snapshot, ns, targetEntityName, otherId);
             } else {
                 return Maybe.empty();
             }

@@ -65,15 +65,16 @@ public interface RxJsonPersistence {
      * <p>
      * TODO: onError(PersistenceException) in case of persistence exception
      *
-     * @param tx           the transaction
-     * @param snapshot     upper bound of the returned version
-     * @param ns           the name space
-     * @param entityName   the entity name
-     * @param relationName the relation name
-     * @param range        lower and upper id bounds
+     * @param tx               the transaction
+     * @param snapshot         upper bound of the returned version
+     * @param ns               the name space
+     * @param entityName       the entity name
+     * @param relationName     the relation name
+     * @param targetEntityName the target entity name
+     * @param range            lower and upper id bounds
      */
     Flowable<JsonDocument> readLinkedDocuments(Transaction tx, ZonedDateTime snapshot, String ns,
-                                               String entityName, String id, String relationName, Range<String> range);
+                                               String entityName, String id, String relationName, String targetEntityName, Range<String> range);
 
     /**
      * TODO: onError(PersistenceException) in case of persistence exception
