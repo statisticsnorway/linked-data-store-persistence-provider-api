@@ -4,7 +4,7 @@ import no.ssb.lds.api.persistence.PersistenceDeletePolicy;
 import no.ssb.lds.api.persistence.PersistenceException;
 import no.ssb.lds.api.persistence.Transaction;
 import no.ssb.lds.api.persistence.TransactionFactory;
-import no.ssb.lds.api.persistence.streaming.Persistence;
+import no.ssb.lds.api.persistence.reactivex.RxPersistence;
 import no.ssb.lds.api.specification.Specification;
 
 import java.time.ZonedDateTime;
@@ -12,7 +12,8 @@ import java.util.concurrent.CompletableFuture;
 
 public interface JsonPersistence {
 
-    Persistence getPersistence();
+    RxPersistence getPersistence();
+
     /**
      * Returns a factory that can be used to create new transactions.
      *
