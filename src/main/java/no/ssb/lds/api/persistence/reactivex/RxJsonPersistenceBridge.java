@@ -16,13 +16,17 @@ import no.ssb.lds.api.persistence.json.JsonToFlattenedDocument;
 import no.ssb.lds.api.persistence.streaming.Fragment;
 import no.ssb.lds.api.persistence.streaming.FragmentType;
 import no.ssb.lds.api.specification.Specification;
+import no.ssb.lds.api.specification.SpecificationElement;
+import no.ssb.lds.api.specification.SpecificationTraverals;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -237,6 +241,14 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
     @Override
     public Completable deleteAllDocumentVersions(Transaction tx, String ns, String entity, String id, PersistenceDeletePolicy policy) {
         return persistence.deleteAllVersions(tx, ns, entity, id, policy);
+    }
+
+    @Override
+    public Completable deleteAllEntities(Transaction tx, String namespace, String entity, Specification specification) {
+        List<String> paths = new ArrayList<>();
+        SpecificationElement entityElement = specification.getElement(entity, null);
+        SpecificationTraverals.depthFirstPreOrderFullTraversal(entityElement, (ancestors, element) -> paths.add(element.jsonPath()));
+        return persistence.deleteAllEntities(tx, namespace, entity, paths);
     }
 
     @Override

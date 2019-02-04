@@ -55,6 +55,8 @@ public interface RxPersistence {
             PersistenceDeletePolicy policy
     );
 
+    Completable deleteAllEntities(Transaction tx, String namespace, String entity, Iterable<String> paths);
+
     Completable markDeleted(
             Transaction transaction,
             String namespace,

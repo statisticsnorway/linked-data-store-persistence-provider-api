@@ -93,6 +93,8 @@ public interface RxJsonPersistence {
     Completable deleteAllDocumentVersions(Transaction tx, String ns, String entity, String id,
                                           PersistenceDeletePolicy policy);
 
+    Completable deleteAllEntities(Transaction tx, String namespace, String entity, Specification specification);
+
     /**
      * TODO: onError(PersistenceException) in case of persistence exception
      */
