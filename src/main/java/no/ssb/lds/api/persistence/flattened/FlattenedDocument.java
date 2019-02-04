@@ -77,7 +77,7 @@ public class FlattenedDocument {
         return Objects.hash(key, leafNodesByPath, deleted);
     }
 
-    Iterator<Fragment> fragmentIterator() {
+    public Iterator<Fragment> fragmentIterator() {
         // TODO Iterable directly rather than creating temporary collection?
         List<Fragment> allDocumentFragments = new LinkedList<>();
         for (Map.Entry<String, FlattenedDocumentLeafNode> entry : leafNodesByPath.entrySet()) {

@@ -91,6 +91,8 @@ public class FlattenedDocumentToJson {
                     leaf.put(arrayIndex, new JSONObject());
                 } else if (FragmentType.NULL == leafNode.type()) {
                     leaf.put(arrayIndex, JSONObject.NULL);
+                } else if (FragmentType.DELETED == leafNode.type()) {
+                    leaf.put(arrayIndex, JSONObject.NULL);
                 } else {
                     throw new UnsupportedOperationException("Unsupported FragmentType: " + leafNode.type());
                 }
@@ -123,6 +125,8 @@ public class FlattenedDocumentToJson {
                     parentOfLeaf.put(leafPathElement, new JSONArray());
                 } else if (FragmentType.EMPTY_OBJECT == leafNode.type()) {
                     parentOfLeaf.put(leafPathElement, new JSONObject());
+                } else if (FragmentType.DELETED == leafNode.type()) {
+                    parentOfLeaf.put(leafPathElement, JSONObject.NULL);
                 } else if (FragmentType.NULL == leafNode.type()) {
                     parentOfLeaf.put(leafPathElement, JSONObject.NULL);
                 } else {

@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-class JsonToFlattenedDocument {
+public class JsonToFlattenedDocument {
 
     private final String namespace;
     private final String entity;
@@ -25,7 +25,7 @@ class JsonToFlattenedDocument {
     private final JSONObject jsonObject;
     private final int fragmentCapacity;
 
-    JsonToFlattenedDocument(String namespace, String entity, String id, ZonedDateTime version, JSONObject jsonObject, int fragmentCapacity) {
+    public JsonToFlattenedDocument(String namespace, String entity, String id, ZonedDateTime version, JSONObject jsonObject, int fragmentCapacity) {
         this.namespace = namespace;
         this.entity = entity;
         this.id = id;
@@ -35,7 +35,7 @@ class JsonToFlattenedDocument {
         documentKey = new DocumentKey(namespace, entity, id, version);
     }
 
-    FlattenedDocument toDocument() {
+    public FlattenedDocument toDocument() {
         Map<String, FlattenedDocumentLeafNode> leafNodesByPath = new LinkedHashMap<>();
         Deque<String> parentPath = new LinkedList<>();
         parentPath.add("$");
