@@ -12,8 +12,6 @@ public class Fragment implements Comparable<Fragment> {
     public static final short LIMITED_CODE = 41;
     public static final short NOT_LIMITED_CODE = 42;
 
-    public static final Fragment DONE_NOT_LIMITED = new Fragment(true, NOT_LIMITED_CODE, null, null, null, null, null, null, 0, null);
-
     private final static Pattern arrayIndexPattern = Pattern.compile("\\[([0-9]*)\\]");
     private final static Pattern noIndexPattern = Pattern.compile("\\[\\]");
 
