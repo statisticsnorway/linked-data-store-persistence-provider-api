@@ -4,6 +4,7 @@ import io.reactivex.Completable;
 import io.reactivex.Flowable;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
+import no.ssb.lds.api.json.JsonNavigationPath;
 import no.ssb.lds.api.persistence.DocumentKey;
 import no.ssb.lds.api.persistence.PersistenceDeletePolicy;
 import no.ssb.lds.api.persistence.PersistenceException;
@@ -18,13 +19,11 @@ import no.ssb.lds.api.persistence.streaming.FragmentType;
 import no.ssb.lds.api.specification.Specification;
 import no.ssb.lds.api.specification.SpecificationElement;
 import no.ssb.lds.api.specification.SpecificationTraverals;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -33,12 +32,14 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.util.Optional.ofNullable;
+
 /**
  *
  */
 public class RxJsonPersistenceBridge implements RxJsonPersistence {
 
-    private static final Pattern LINK_PATTERN = Pattern.compile("/(?<entity>.*)/(?<id>.*)");
+    private static final Pattern LINK_PATTERN = Pattern.compile("/(?<entity>[^/]*)/(?<id>[^/]*)");
     private final RxPersistence persistence;
     private final int fragmentSize;
 
@@ -203,25 +204,28 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
 
     @Override
     public Flowable<JsonDocument> readLinkedDocuments(Transaction tx, ZonedDateTime snapshot, String ns,
-                                                      String entityName, String id, String relationName,
+                                                      String entityName, String id, JsonNavigationPath jsonNavigationPath,
                                                       String targetEntityName, Range<String> range) {
-        // TODO support this in RxPersistence.
-        return readDocument(tx, snapshot, ns, entityName, id).flattenAsFlowable(document -> {
-            JSONObject obj = document.document();
-            if (!obj.has(relationName)) {
-                return Collections.emptyList();
-            }
-            JSONArray jsonArray = obj.getJSONArray(relationName);
-            return jsonArray.toList();
-        }).cast(String.class).concatMapMaybe(value -> {
-            Matcher matcher = LINK_PATTERN.matcher(value);
-            if (matcher.matches()) {
-                String otherId = matcher.group("id");
-                return readDocument(tx, snapshot, ns, targetEntityName, otherId);
-            } else {
-                return Maybe.empty();
-            }
-        });
+        // TODO support reading only from relevant jsonPath in RxPersistence instead of reading entire document.
+        return readDocument(tx, snapshot, ns, entityName, id)
+                .flattenAsFlowable(document -> {
+                    List<String> links = new ArrayList<>();
+                    document.traverseField(jsonNavigationPath, (node, path) -> {
+                        String link = node.asText();
+                        Matcher m = LINK_PATTERN.matcher(link);
+                        if (!m.matches()) {
+                            return;
+                        }
+                        if (!targetEntityName.equals(m.group("entity"))) {
+                            return;
+                        }
+                        links.add(m.group("id"));
+                    });
+                    return links;
+                })
+                .sorted((o1, o2) -> range.isBackward() ? o2.compareTo(o1) : o1.compareTo(o2))
+                .take(ofNullable(range).map(Range::getLimit).orElse(Integer.MAX_VALUE))
+                .concatMapMaybe(targetId -> readDocument(tx, snapshot, ns, targetEntityName, targetId));
     }
 
     @Override
@@ -246,8 +250,8 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
     @Override
     public Completable deleteAllEntities(Transaction tx, String namespace, String entity, Specification specification) {
         List<String> paths = new ArrayList<>();
-        SpecificationElement entityElement = specification.getElement(entity, null);
-        SpecificationTraverals.depthFirstPreOrderFullTraversal(entityElement, (ancestors, element) -> paths.add(element.jsonPath()));
+        SpecificationElement entityElement = JsonNavigationPath.from("$").toSpecificationElement(specification, entity);
+        SpecificationTraverals.depthFirstPreOrderFullTraversal(entityElement, (ancestors, element) -> paths.add(JsonNavigationPath.from(element).serialize()));
         return persistence.deleteAllEntities(tx, namespace, entity, paths);
     }
 

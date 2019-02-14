@@ -3,6 +3,7 @@ package no.ssb.lds.api.persistence.json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import no.ssb.lds.api.json.JsonNavigationPath;
 import no.ssb.lds.api.persistence.DocumentKey;
 import org.json.JSONObject;
 
@@ -56,13 +57,13 @@ public class JsonDocument {
         return document == null;
     }
 
-    public void traverseField(String[] schemaPath, BiConsumer<JsonNode, String> visitCallback) {
+    public void traverseField(JsonNavigationPath jsonNavigationPath, BiConsumer<JsonNode, String> visitCallback) {
         LinkedList<String> path = new LinkedList<>();
-        path.add(schemaPath[0]);
-        doTraverseField(jackson, schemaPath, 1, path, visitCallback);
+        path.add(jsonNavigationPath.getPath()[0]);
+        doTraverseField(jackson, jsonNavigationPath.getPath(), 1, path, visitCallback);
     }
 
-    public void doTraverseField(JsonNode node, String[] schemaPath, int index, Deque<String> path, BiConsumer<JsonNode, String> visitCallback) {
+    private void doTraverseField(JsonNode node, String[] schemaPath, int index, Deque<String> path, BiConsumer<JsonNode, String> visitCallback) {
         if (index >= schemaPath.length) {
             visitCallback.accept(node, path.stream().collect(Collectors.joining(".")).replaceAll("\\.\\[", "["));
             return;

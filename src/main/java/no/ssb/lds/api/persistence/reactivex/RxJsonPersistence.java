@@ -4,6 +4,7 @@ import io.reactivex.Completable;
 import io.reactivex.Flowable;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
+import no.ssb.lds.api.json.JsonNavigationPath;
 import no.ssb.lds.api.persistence.PersistenceDeletePolicy;
 import no.ssb.lds.api.persistence.PersistenceException;
 import no.ssb.lds.api.persistence.Transaction;
@@ -65,16 +66,17 @@ public interface RxJsonPersistence {
      * <p>
      * TODO: onError(PersistenceException) in case of persistence exception
      *
-     * @param tx               the transaction
-     * @param snapshot         upper bound of the returned version
-     * @param ns               the name space
-     * @param entityName       the entity name
-     * @param relationName     the relation name
-     * @param targetEntityName the target entity name
-     * @param range            lower and upper id bounds
+     * @param tx                 the transaction
+     * @param snapshot           upper bound of the returned version
+     * @param ns                 the name space
+     * @param entityName         the entity name
+     * @param jsonNavigationPath the json-navigation-path
+     * @param targetEntityName   the target entity name
+     * @param range              lower and upper id bounds
      */
     Flowable<JsonDocument> readLinkedDocuments(Transaction tx, ZonedDateTime snapshot, String ns,
-                                               String entityName, String id, String relationName, String targetEntityName, Range<String> range);
+                                               String entityName, String id, JsonNavigationPath jsonNavigationPath,
+                                               String targetEntityName, Range<String> range);
 
     /**
      * TODO: onError(PersistenceException) in case of persistence exception
