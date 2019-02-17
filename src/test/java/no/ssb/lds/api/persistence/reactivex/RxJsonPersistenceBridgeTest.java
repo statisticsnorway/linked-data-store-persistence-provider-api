@@ -1,5 +1,9 @@
 package no.ssb.lds.api.persistence.reactivex;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.reactivex.Flowable;
 import io.reactivex.Maybe;
 import no.ssb.lds.api.persistence.DocumentKey;
@@ -8,15 +12,13 @@ import no.ssb.lds.api.persistence.json.JsonToFlattenedDocument;
 import no.ssb.lds.api.persistence.streaming.Fragment;
 import no.ssb.lds.api.persistence.streaming.FragmentType;
 import org.assertj.core.api.Condition;
-import org.json.JSONObject;
+import org.json.JSONException;
+import org.skyscreamer.jsonassert.JSONAssert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -31,7 +33,7 @@ public class RxJsonPersistenceBridgeTest {
 
     private static Iterator<Fragment> createFragments(JsonDocument document, int capacity) {
         DocumentKey key = document.key();
-        JSONObject json = document.document();
+        JsonNode json = document.jackson();
         JsonToFlattenedDocument flattenedDocument = new JsonToFlattenedDocument(
                 key.namespace(), key.entity(), key.id(), key.timestamp(), json, capacity);
 
@@ -40,7 +42,26 @@ public class RxJsonPersistenceBridgeTest {
 
     private static Condition<JsonDocument> thatIsEqualTo(JsonDocument document) {
         return new Condition<>(returnedDocument -> returnedDocument.key().equals(document.key())
-                && returnedDocument.document().similar(document.document()), "similar documents");
+                && isSimilar(returnedDocument.jackson(), document.jackson()), "similar documents");
+    }
+
+    private static boolean isSimilar(JsonNode node1, JsonNode node2) {
+        try {
+            JSONAssert.assertEquals(serialize(node1), serialize(node2), false);
+            return true;
+        } catch (AssertionError e) {
+            return false;
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String serialize(JsonNode node) {
+        try {
+            return JsonDocument.mapper.writeValueAsString(node);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @BeforeMethod
@@ -72,7 +93,7 @@ public class RxJsonPersistenceBridgeTest {
 
         Comparator<JsonDocument> byKeyAndJsonValue = Comparator
                 .comparing(JsonDocument::key, (o1, o2) -> o1.equals(o2) ? 0 : -1)
-                .thenComparing(JsonDocument::document, (o1, o2) -> o1.similar(o2) ? 0 : -1);
+                .thenComparing(JsonDocument::jackson, (o1, o2) -> isSimilar(o1, o2) ? 0 : -1);
 
         Flowable<JsonDocument> betweenThreeAndNine = doReadDocuments(fragmentFlowable,
                 Range.between("id03", "id09"), capacity);
@@ -88,7 +109,6 @@ public class RxJsonPersistenceBridgeTest {
     }
 
 
-
     private JsonDocument createDocument(String id) {
         return new JsonDocument(
                 new DocumentKey("ns", "entity", id, parse("2000-01-01T00:00:00.000Z")),
@@ -99,21 +119,33 @@ public class RxJsonPersistenceBridgeTest {
     /**
      * Create an object that contains all values of {@link FragmentType}
      */
-    private JSONObject createComplexObject(String id) {
-        Map<String, Object> anObject = new LinkedHashMap<>();
+    private JsonNode createComplexObject(String id) {
+        ObjectNode root = JsonDocument.mapper.createObjectNode();
+        populate(id, root);
+
+        ObjectNode anObject = root.putObject("anObject");
+        ObjectNode firstObject = anObject.putObject("firstObject");
+        populate(id, firstObject);
+        ObjectNode secondObject = anObject.putObject("firstObject");
+        populate(id, secondObject);
+
+        ArrayNode anArray = root.putArray("anArray");
+        ObjectNode firstArrayValue = anArray.addObject();
+        populate(id, firstArrayValue);
+        ObjectNode secondArrayValue = anArray.addObject();
+        populate(id, secondArrayValue);
+
+        return root;
+    }
+
+    private void populate(String id, ObjectNode anObject) {
         anObject.put("objectId", id);
         anObject.put("aTrue", true);
         anObject.put("aNumeric", 987654321.123456789);
         anObject.put("aString", "theString");
-        anObject.put("anEmptyArray", List.of());
-        anObject.put("anEmptyObject", Map.of());
+        anObject.putArray("anEmptyArray");
+        anObject.putObject("anEmptyObject");
         anObject.put("aFalse", false);
-        // TODO: Seems JSONObject ignore null values.
-        anObject.put("aNull", null);
-
-        Map<String, Object> rootObject = new LinkedHashMap<>(anObject);
-        rootObject.put("anObject", Map.of("firstObject", anObject, "secondObject", anObject));
-        rootObject.put("anArray", List.of(anObject, anObject));
-        return new JSONObject(rootObject);
+        anObject.putNull("aNull");
     }
 }

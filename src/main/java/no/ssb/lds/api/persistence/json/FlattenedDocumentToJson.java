@@ -1,10 +1,11 @@
 package no.ssb.lds.api.persistence.json;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import no.ssb.lds.api.persistence.flattened.FlattenedDocument;
 import no.ssb.lds.api.persistence.flattened.FlattenedDocumentLeafNode;
 import no.ssb.lds.api.persistence.streaming.FragmentType;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -20,13 +21,13 @@ public class FlattenedDocumentToJson {
         this.document = document;
     }
 
-    public JSONObject toJSONObject() {
-        JSONObject root = new JSONObject();
+    public JsonNode toJsonNode() {
+        ObjectNode root = JsonDocument.mapper.createObjectNode();
         for (Map.Entry<String, FlattenedDocumentLeafNode> entry : document.leafNodesByPath().entrySet()) {
             String path = entry.getKey();
             FlattenedDocumentLeafNode leafNode = entry.getValue();
             String[] pathElements = path.split("\\.");
-            JSONObject parentOfLeaf = root;
+            ObjectNode parentOfLeaf = root;
             for (int i = 1; i < pathElements.length - 1; i++) {
                 String pathElement = pathElements[i];
                 Matcher m = arrayNavigationPattern.matcher(pathElement);
@@ -35,19 +36,19 @@ public class FlattenedDocumentToJson {
                     String arrayIdentifier = m.group(1);
                     int arrayIndex = Integer.parseInt(m.group(2));
                     if (!parentOfLeaf.has(arrayIdentifier)) {
-                        parentOfLeaf.put(arrayIdentifier, new JSONArray());
+                        parentOfLeaf.putArray(arrayIdentifier);
                     }
-                    JSONArray array = parentOfLeaf.getJSONArray(arrayIdentifier);
-                    if (arrayIndex >= array.length()) {
-                        array.put(arrayIndex, new JSONObject());
+                    ArrayNode array = (ArrayNode) parentOfLeaf.get(arrayIdentifier);
+                    if (arrayIndex >= array.size()) {
+                        array.insertObject(arrayIndex);
                     }
-                    parentOfLeaf = array.getJSONObject(arrayIndex);
+                    parentOfLeaf = (ObjectNode) array.get(arrayIndex);
                 } else {
                     // map
                     if (!parentOfLeaf.has(pathElement)) {
-                        parentOfLeaf.put(pathElement, new JSONObject());
+                        parentOfLeaf.putObject(pathElement);
                     }
-                    parentOfLeaf = parentOfLeaf.getJSONObject(pathElement);
+                    parentOfLeaf = (ObjectNode) parentOfLeaf.get(pathElement);
                 }
             }
 
@@ -58,41 +59,39 @@ public class FlattenedDocumentToJson {
                 String arrayIdentifier = m.group(1);
                 int arrayIndex = Integer.parseInt(m.group(2));
                 if (!parentOfLeaf.has(arrayIdentifier)) {
-                    parentOfLeaf.put(arrayIdentifier, new JSONArray());
+                    parentOfLeaf.putArray(arrayIdentifier);
                 }
-                JSONArray leaf = parentOfLeaf.getJSONArray(arrayIdentifier);
+                ArrayNode leaf = (ArrayNode) parentOfLeaf.get(arrayIdentifier);
 
                 if (FragmentType.NUMERIC == leafNode.type()) {
                     String strValue = (String) leafNode.value();
-                    Object value;
                     // TODO Use pattern matching to find correct type rather than using exceptions
                     // TODO to control type and flow.
                     try {
-                        value = Integer.valueOf(strValue);
+                        leaf.insert(arrayIndex, Integer.valueOf(strValue));
                     } catch (NumberFormatException e) {
                         try {
-                            value = Long.valueOf(strValue);
+                            leaf.insert(arrayIndex, Long.valueOf(strValue));
                         } catch (NumberFormatException e1) {
                             try {
-                                value = Double.valueOf(strValue);
+                                leaf.insert(arrayIndex, Double.valueOf(strValue));
                             } catch (NumberFormatException e2) {
                                 throw e2;
                             }
                         }
                     }
-                    leaf.put(arrayIndex, value);
                 } else if (FragmentType.STRING == leafNode.type()) {
-                    leaf.put(arrayIndex, leafNode.value());
+                    leaf.insert(arrayIndex, (String) leafNode.value());
                 } else if (FragmentType.BOOLEAN == leafNode.type()) {
-                    leaf.put(arrayIndex, Boolean.valueOf((String) leafNode.value()));
+                    leaf.insert(arrayIndex, Boolean.valueOf((String) leafNode.value()));
                 } else if (FragmentType.EMPTY_ARRAY == leafNode.type()) {
-                    leaf.put(arrayIndex, new JSONArray());
+                    leaf.insertArray(arrayIndex);
                 } else if (FragmentType.EMPTY_OBJECT == leafNode.type()) {
-                    leaf.put(arrayIndex, new JSONObject());
+                    leaf.insertObject(arrayIndex);
                 } else if (FragmentType.NULL == leafNode.type()) {
-                    leaf.put(arrayIndex, JSONObject.NULL);
+                    leaf.insertNull(arrayIndex);
                 } else if (FragmentType.DELETED == leafNode.type()) {
-                    leaf.put(arrayIndex, JSONObject.NULL);
+                    leaf.insertNull(arrayIndex);
                 } else {
                     throw new UnsupportedOperationException("Unsupported FragmentType: " + leafNode.type());
                 }
@@ -100,35 +99,33 @@ public class FlattenedDocumentToJson {
                 // map
                 if (FragmentType.NUMERIC == leafNode.type()) {
                     String strValue = (String) leafNode.value();
-                    Object value;
                     // TODO Use pattern matching to find correct type rather than using exceptions
                     // TODO to control type and flow.
                     try {
-                        value = Integer.valueOf(strValue);
+                        parentOfLeaf.put(leafPathElement, Integer.valueOf(strValue));
                     } catch (NumberFormatException e) {
                         try {
-                            value = Long.valueOf(strValue);
+                            parentOfLeaf.put(leafPathElement, Long.valueOf(strValue));
                         } catch (NumberFormatException e1) {
                             try {
-                                value = Double.valueOf(strValue);
+                                parentOfLeaf.put(leafPathElement, Double.valueOf(strValue));
                             } catch (NumberFormatException e2) {
                                 throw e2;
                             }
                         }
                     }
-                    parentOfLeaf.put(leafPathElement, value);
                 } else if (FragmentType.STRING == leafNode.type()) {
-                    parentOfLeaf.put(leafPathElement, leafNode.value());
+                    parentOfLeaf.put(leafPathElement, (String) leafNode.value());
                 } else if (FragmentType.BOOLEAN == leafNode.type()) {
                     parentOfLeaf.put(leafPathElement, Boolean.parseBoolean((String) leafNode.value()));
                 } else if (FragmentType.EMPTY_ARRAY == leafNode.type()) {
-                    parentOfLeaf.put(leafPathElement, new JSONArray());
+                    parentOfLeaf.putArray(leafPathElement);
                 } else if (FragmentType.EMPTY_OBJECT == leafNode.type()) {
-                    parentOfLeaf.put(leafPathElement, new JSONObject());
+                    parentOfLeaf.putObject(leafPathElement);
                 } else if (FragmentType.DELETED == leafNode.type()) {
-                    parentOfLeaf.put(leafPathElement, JSONObject.NULL);
+                    parentOfLeaf.putNull(leafPathElement);
                 } else if (FragmentType.NULL == leafNode.type()) {
-                    parentOfLeaf.put(leafPathElement, JSONObject.NULL);
+                    parentOfLeaf.putNull(leafPathElement);
                 } else {
                     throw new UnsupportedOperationException("Unsupported FragmentType: " + leafNode.type());
                 }

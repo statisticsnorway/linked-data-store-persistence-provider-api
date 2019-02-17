@@ -1,5 +1,4 @@
 module no.ssb.lds.persistence.api {
-    requires org.json;
     requires io.reactivex.rxjava2;
     requires org.reactivestreams;
     requires com.github.akarnokd.rxjava2jdk9interop;

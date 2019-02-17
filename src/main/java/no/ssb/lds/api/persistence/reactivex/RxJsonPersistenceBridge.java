@@ -1,5 +1,6 @@
 package no.ssb.lds.api.persistence.reactivex;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.reactivex.Completable;
 import io.reactivex.Flowable;
 import io.reactivex.Maybe;
@@ -19,7 +20,6 @@ import no.ssb.lds.api.persistence.streaming.FragmentType;
 import no.ssb.lds.api.specification.Specification;
 import no.ssb.lds.api.specification.SpecificationElement;
 import no.ssb.lds.api.specification.SpecificationTraverals;
-import org.json.JSONObject;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -119,7 +119,7 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
             // Convert to JsonDocument.
             return new JsonDocument(
                     flattenedDocument.key(),
-                    new FlattenedDocumentToJson(flattenedDocument).toJSONObject()
+                    new FlattenedDocumentToJson(flattenedDocument).toJsonNode()
             );
         });
     }
@@ -188,14 +188,14 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
 
         return doFindDocuments(fragments, range, fragmentSize).filter(document -> {
             // Post filter since fragment based implementation can return false positive.
-            Object map = document.document().toMap();
+            JsonNode node = document.jackson();
             for (String field : path.split("\\.")) {
                 if (!field.equals("$")) {
-                    map = ((Map<String, Object>) map).get(field);
+                    node = node.get(field);
                 }
             }
-            if (map instanceof String) {
-                return map.equals(value);
+            if (node.isTextual()) {
+                return node.textValue().equals(value);
             } else {
                 return false;
             }
@@ -231,7 +231,7 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
     @Override
     public Completable createOrOverwrite(Transaction tx, JsonDocument document, Specification specification) {
         DocumentKey key = document.key();
-        JSONObject json = document.document();
+        JsonNode json = document.jackson();
         JsonToFlattenedDocument converter = new JsonToFlattenedDocument(key.namespace(), key.entity(), key.id(),
                 key.timestamp(), json, fragmentSize);
         return persistence.createOrOverwrite(tx, Flowable.fromIterable(() -> converter.toDocument().fragmentIterator()));

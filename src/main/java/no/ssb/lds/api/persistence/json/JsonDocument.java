@@ -5,9 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import no.ssb.lds.api.json.JsonNavigationPath;
 import no.ssb.lds.api.persistence.DocumentKey;
-import org.json.JSONObject;
 
-import java.io.IOException;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.function.BiConsumer;
@@ -15,38 +13,19 @@ import java.util.stream.Collectors;
 
 public class JsonDocument {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    public static final ObjectMapper mapper = new ObjectMapper();
 
     private final DocumentKey key;
 
     private JsonNode jackson;
 
-    @Deprecated(forRemoval = true)
-    private JSONObject document;
-
     public JsonDocument(DocumentKey key, JsonNode document) {
         this.key = key;
         this.jackson = document;
-        this.document = new JSONObject(jackson.toString());
-    }
-
-    @Deprecated(forRemoval = true)
-    public JsonDocument(DocumentKey key, JSONObject document) {
-        this.key = key;
-        this.document = document;
-        try {
-            this.jackson = objectMapper.readTree(document.toString());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public DocumentKey key() {
         return key;
-    }
-
-    public JSONObject document() {
-        return document;
     }
 
     public JsonNode jackson() {
@@ -54,7 +33,7 @@ public class JsonDocument {
     }
 
     public boolean deleted() {
-        return document == null;
+        return jackson == null;
     }
 
     public void traverseField(JsonNavigationPath jsonNavigationPath, BiConsumer<JsonNode, String> visitCallback) {
