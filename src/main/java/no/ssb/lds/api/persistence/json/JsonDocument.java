@@ -8,6 +8,7 @@ import no.ssb.lds.api.persistence.DocumentKey;
 
 import java.util.Deque;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -18,6 +19,11 @@ public class JsonDocument {
     private final DocumentKey key;
 
     private JsonNode jackson;
+
+    public JsonDocument(DocumentKey key, Map<String, Object> document) {
+        this.key = key;
+        this.jackson = JsonTools.toJsonNode(document);
+    }
 
     public JsonDocument(DocumentKey key, JsonNode document) {
         this.key = key;
@@ -30,6 +36,10 @@ public class JsonDocument {
 
     public JsonNode jackson() {
         return jackson;
+    }
+
+    public Map<String, Object> toMap() {
+        return JsonTools.toMap(jackson);
     }
 
     public boolean deleted() {
