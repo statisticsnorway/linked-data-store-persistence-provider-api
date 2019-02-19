@@ -23,6 +23,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import static java.time.ZonedDateTime.parse;
+import static no.ssb.lds.api.persistence.json.JsonTools.mapper;
 import static no.ssb.lds.api.persistence.reactivex.RxJsonPersistenceBridge.doReadDocument;
 import static no.ssb.lds.api.persistence.reactivex.RxJsonPersistenceBridge.doReadDocuments;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,7 +59,7 @@ public class RxJsonPersistenceBridgeTest {
 
     public static String serialize(JsonNode node) {
         try {
-            return JsonDocument.mapper.writeValueAsString(node);
+            return mapper.writeValueAsString(node);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -120,7 +121,7 @@ public class RxJsonPersistenceBridgeTest {
      * Create an object that contains all values of {@link FragmentType}
      */
     private JsonNode createComplexObject(String id) {
-        ObjectNode root = JsonDocument.mapper.createObjectNode();
+        ObjectNode root = mapper.createObjectNode();
         populate(id, root);
 
         ObjectNode anObject = root.putObject("anObject");

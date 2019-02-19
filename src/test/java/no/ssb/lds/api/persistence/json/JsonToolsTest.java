@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.json.JSONException;
 import org.testng.annotations.Test;
 
-import static no.ssb.lds.api.persistence.json.JsonDocument.mapper;
+import static no.ssb.lds.api.persistence.json.JsonTools.mapper;
 import static no.ssb.lds.api.persistence.json.JsonTools.toJson;
 import static no.ssb.lds.api.persistence.json.JsonTools.toJsonNode;
 import static no.ssb.lds.api.persistence.json.JsonTools.toList;

@@ -1,7 +1,6 @@
 package no.ssb.lds.api.persistence.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import no.ssb.lds.api.json.JsonNavigationPath;
 import no.ssb.lds.api.persistence.DocumentKey;
@@ -13,8 +12,6 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public class JsonDocument {
-
-    public static final ObjectMapper mapper = new ObjectMapper();
 
     private final DocumentKey key;
 

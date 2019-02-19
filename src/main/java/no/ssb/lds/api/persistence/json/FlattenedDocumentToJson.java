@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static no.ssb.lds.api.persistence.json.JsonTools.mapper;
+
 public class FlattenedDocumentToJson {
 
     static final Pattern arrayNavigationPattern = Pattern.compile("([^\\[]*)\\[([0-9]+)\\]");
@@ -22,7 +24,7 @@ public class FlattenedDocumentToJson {
     }
 
     public JsonNode toJsonNode() {
-        ObjectNode root = JsonDocument.mapper.createObjectNode();
+        ObjectNode root = mapper.createObjectNode();
         for (Map.Entry<String, FlattenedDocumentLeafNode> entry : document.leafNodesByPath().entrySet()) {
             String path = entry.getKey();
             FlattenedDocumentLeafNode leafNode = entry.getValue();

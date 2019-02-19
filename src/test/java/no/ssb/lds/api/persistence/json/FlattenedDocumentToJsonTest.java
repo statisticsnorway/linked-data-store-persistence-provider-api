@@ -13,6 +13,8 @@ import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static no.ssb.lds.api.persistence.json.JsonTools.mapper;
+
 public class FlattenedDocumentToJsonTest {
 
     @Test
@@ -27,6 +29,6 @@ public class FlattenedDocumentToJsonTest {
 
         JsonNode document = new FlattenedDocumentToJson(flattenedDocument).toJsonNode();
 
-        System.out.printf("%s%n", JsonDocument.mapper.writerWithDefaultPrettyPrinter().writeValueAsString(document));
+        System.out.printf("%s%n", mapper.writerWithDefaultPrettyPrinter().writeValueAsString(document));
     }
 }
