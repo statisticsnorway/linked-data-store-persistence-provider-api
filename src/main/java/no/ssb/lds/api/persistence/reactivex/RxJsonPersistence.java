@@ -128,7 +128,7 @@ public interface RxJsonPersistence {
      */
     Transaction createTransaction(boolean readOnly) throws PersistenceException;
 
-    Flowable<JsonDocument> findDocument(Transaction tx, ZonedDateTime snapshot, String namespace, String entityName, String path, String value, Range<String> range);
+    Flowable<JsonDocument> findDocument(Transaction tx, ZonedDateTime snapshot, String namespace, String entityName, JsonNavigationPath path, String value, Range<String> range);
 
     /**
      * Clean up resources

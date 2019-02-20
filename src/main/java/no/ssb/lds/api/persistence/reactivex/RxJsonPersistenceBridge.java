@@ -28,6 +28,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -174,11 +175,11 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
 
     @Override
     public Flowable<JsonDocument> findDocument(Transaction tx, ZonedDateTime snapshot, String namespace,
-                                               String entityName, String path, String value, Range<String> range) {
+                                               String entityName, JsonNavigationPath navigationPath, String value, Range<String> range) {
         // TODO support stronger typing of value
         Map<Integer, byte[]> valueByOffset = FlattenedDocumentLeafNode.valueByOffset(FragmentType.STRING, fragmentSize, value);
         byte[] bytesValue = valueByOffset.get(0);
-        Flowable<Fragment> fragments = persistence.find(tx, snapshot, namespace, entityName, path, bytesValue,
+        Flowable<Fragment> fragments = persistence.find(tx, snapshot, namespace, entityName, navigationPath.serialize(), bytesValue,
                 Range.unlimited(range));
 
         // Resort.
@@ -188,17 +189,21 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
 
         return doFindDocuments(fragments, range, fragmentSize).filter(document -> {
             // Post filter since fragment based implementation can return false positive.
-            JsonNode node = document.jackson();
-            for (String field : path.split("\\.")) {
-                if (!field.equals("$")) {
-                    node = node.get(field);
+            AtomicBoolean match = new AtomicBoolean(false);
+            document.traverseField(navigationPath, (node, path) -> {
+                if (node.isTextual()) {
+                    boolean equals = node.textValue().equals(value);
+                    if (equals) {
+                        match.set(true);
+                    }
+                } else {
+                    // TODO support matching values of other types
                 }
+            });
+            if (match.get() == false) {
+                return false; // discard false-positive match from underlying persistence layer
             }
-            if (node.isTextual()) {
-                return node.textValue().equals(value);
-            } else {
-                return false;
-            }
+            return true;
         });
     }
 
