@@ -46,4 +46,12 @@ public class JsonTools {
             throw new RuntimeException(e);
         }
     }
+
+    public static String toPrettyJson(JsonNode node) {
+        try {
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

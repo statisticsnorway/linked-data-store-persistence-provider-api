@@ -1,6 +1,5 @@
 package no.ssb.lds.api.persistence.json;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import no.ssb.lds.api.persistence.DocumentKey;
 import no.ssb.lds.api.persistence.flattened.FlattenedDocument;
@@ -13,12 +12,10 @@ import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static no.ssb.lds.api.persistence.json.JsonTools.mapper;
-
 public class FlattenedDocumentToJsonTest {
 
     @Test
-    public void thatComplexArrayDocumentIsCorrectlyConverted() throws JsonProcessingException {
+    public void thatComplexArrayDocumentIsCorrectlyConverted() {
         DocumentKey key = new DocumentKey("ns", "E", "1", ZonedDateTime.now(ZoneId.of("Etc/UTC")));
         Map<String, FlattenedDocumentLeafNode> leafNodesByPath = new LinkedHashMap<>();
         leafNodesByPath.put("$.name[0].first", new FlattenedDocumentLeafNode(key, "$.name[0].first", FragmentType.STRING, "John", 64));
@@ -29,6 +26,6 @@ public class FlattenedDocumentToJsonTest {
 
         JsonNode document = new FlattenedDocumentToJson(flattenedDocument).toJsonNode();
 
-        System.out.printf("%s%n", mapper.writerWithDefaultPrettyPrinter().writeValueAsString(document));
+        System.out.printf("%s%n", JsonTools.toPrettyJson(document));
     }
 }

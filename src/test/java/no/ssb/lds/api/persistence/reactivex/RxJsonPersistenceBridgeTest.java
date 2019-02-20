@@ -1,6 +1,5 @@
 package no.ssb.lds.api.persistence.reactivex;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -9,6 +8,7 @@ import io.reactivex.Maybe;
 import no.ssb.lds.api.persistence.DocumentKey;
 import no.ssb.lds.api.persistence.json.JsonDocument;
 import no.ssb.lds.api.persistence.json.JsonToFlattenedDocument;
+import no.ssb.lds.api.persistence.json.JsonTools;
 import no.ssb.lds.api.persistence.streaming.Fragment;
 import no.ssb.lds.api.persistence.streaming.FragmentType;
 import org.assertj.core.api.Condition;
@@ -48,19 +48,11 @@ public class RxJsonPersistenceBridgeTest {
 
     private static boolean isSimilar(JsonNode node1, JsonNode node2) {
         try {
-            JSONAssert.assertEquals(serialize(node1), serialize(node2), false);
+            JSONAssert.assertEquals(JsonTools.toJson(node1), JsonTools.toJson(node2), false);
             return true;
         } catch (AssertionError e) {
             return false;
         } catch (JSONException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static String serialize(JsonNode node) {
-        try {
-            return mapper.writeValueAsString(node);
-        } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
