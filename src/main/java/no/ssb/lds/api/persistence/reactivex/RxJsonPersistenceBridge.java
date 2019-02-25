@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -99,23 +100,15 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
      * The received fragments must be ordered by id <strong>before</strong> it is ordered by path..
      */
     static Flowable<JsonDocument> toDocuments(Flowable<Fragment> fragmentFlowable, int fragmentSize, boolean includeDeleted) {
-        return fragmentFlowable.takeWhile(fragment -> {
-            // Stop when fragment is control.
-            return !fragment.isStreamingControl();
-        }).groupBy(fragment -> {
-            // Group by id.
-            return DocumentKey.from(fragment);
-        }).concatMapEager(fragments -> {
-            // For each group, create a FlattenedDocument.
-            DocumentKey key = fragments.getKey();
-            // Note that we return a Single<FlattenedDocument> so we use flatMap.
-            return fragments.toMultimap(Fragment::path).map(map -> {
-                return FlattenedDocument.decodeDocument(key, map, fragmentSize);
-            }).toFlowable();
-        }).filter(flattenedDocument -> {
+        return RxGroupByTools.groupByConvertOrdered(
+                fragmentFlowable.takeWhile(fragment -> !fragment.isStreamingControl()),
+                fragment -> DocumentKey.from(fragment),
+                (key, fragments) -> documentFromFragments(key, fragments, fragmentSize)
+
+        ).filter(flattenedDocument -> {
             // Filter out the deleted documents.
-            // TODO: Make conditional to save the rain forest.
             return includeDeleted || !flattenedDocument.deleted();
+
         }).map(flattenedDocument -> {
             // Convert to JsonDocument.
             return new JsonDocument(
@@ -123,6 +116,14 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
                     new FlattenedDocumentToJson(flattenedDocument).toJsonNode()
             );
         });
+    }
+
+    private static FlattenedDocument documentFromFragments(DocumentKey key, List<Fragment> fragments, int fragmentSize) {
+        Map<String, List<Fragment>> map = new LinkedHashMap<>();
+        for (Fragment fragment : fragments) {
+            map.computeIfAbsent(fragment.path(), path -> new ArrayList<>()).add(fragment);
+        }
+        return FlattenedDocument.decodeDocument(key, map, fragmentSize);
     }
 
     static Flowable<JsonDocument> doReadDocuments(Flowable<Fragment> fragments, Range<String> range, int fragmentSize) {
@@ -243,17 +244,20 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
     }
 
     @Override
-    public Completable deleteDocument(Transaction tx, String ns, String entityName, String id, ZonedDateTime version, PersistenceDeletePolicy policy) {
+    public Completable deleteDocument(Transaction tx, String ns, String entityName, String id, ZonedDateTime
+            version, PersistenceDeletePolicy policy) {
         return persistence.delete(tx, ns, entityName, id, version, policy);
     }
 
     @Override
-    public Completable deleteAllDocumentVersions(Transaction tx, String ns, String entity, String id, PersistenceDeletePolicy policy) {
+    public Completable deleteAllDocumentVersions(Transaction tx, String ns, String entity, String
+            id, PersistenceDeletePolicy policy) {
         return persistence.deleteAllVersions(tx, ns, entity, id, policy);
     }
 
     @Override
-    public Completable deleteAllEntities(Transaction tx, String namespace, String entity, Specification specification) {
+    public Completable deleteAllEntities(Transaction tx, String namespace, String entity, Specification
+            specification) {
         List<String> paths = new ArrayList<>();
         SpecificationElement entityElement = JsonNavigationPath.from("$").toSpecificationElement(specification, entity);
         SpecificationTraverals.depthFirstPreOrderFullTraversal(entityElement, (ancestors, element) -> paths.add(JsonNavigationPath.from(element).serialize()));
@@ -261,12 +265,14 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
     }
 
     @Override
-    public Completable markDocumentDeleted(Transaction transaction, String ns, String entityName, String id, ZonedDateTime version, PersistenceDeletePolicy policy) {
+    public Completable markDocumentDeleted(Transaction transaction, String ns, String entityName, String
+            id, ZonedDateTime version, PersistenceDeletePolicy policy) {
         return persistence.markDeleted(transaction, ns, entityName, id, version, policy);
     }
 
     @Override
-    public Single<Boolean> hasPrevious(Transaction tx, ZonedDateTime snapshot, String ns, String entityName, String id) {
+    public Single<Boolean> hasPrevious(Transaction tx, ZonedDateTime snapshot, String ns, String entityName, String
+            id) {
         return readDocuments(tx, snapshot, ns, entityName, Range.lastBefore(1, id)).isEmpty()
                 .map(wasEmpty -> !wasEmpty);
     }
