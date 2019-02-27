@@ -1,101 +1,148 @@
 package no.ssb.lds.api.persistence.reactivex;
 
 import io.reactivex.Flowable;
-import io.reactivex.Maybe;
+import io.reactivex.schedulers.Schedulers;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class RxGroupByTools {
 
     /**
-     * Assumes that the upstream is pre-ordered so that all upstream items that yield the same output when applying the
-     * groupKeyFunction will come immediately after one-another. This allows the flow to only buffer upstream items from
-     * a single group at any time, thus allowing much more control over memory usage, and given finite groups will avoid
-     * unbounded memory usage.
+     * Assumes that the upstream is pre-ordered by group, so that all upstream items belonging to the same group
+     * will come immediately after one-another. This allows the grouped-flows to be immediately completed when an item
+     * belonging to a different group is observed upstream.
      * <p>
-     * This function honors downstream back-pressure and will only consume as many groups upstream as back-pressure
-     * allows downstream.
+     * The returned stream honors downstream back-pressure at the group-level, and will buffer all items in each group
+     * until they are subscribed to and consumed. This allows more control over memory-usage than the built-in group-by
+     * operations currently supported by RxJava.
      *
-     * @param upstream           the upstream as a flow of upstream-items
-     * @param groupKeyFunction   the function that will be applied to an upstream item to determine which group it
-     *                           belongs to. This function must be idempotent (cannot have side effect as it might be
-     *                           applied more than once).
-     * @param convertionFunction a function that given a group-key and the corresponding buffer of all belonging
-     *                           upstream-items will produce a single downstream item.
-     * @param <D>                the generic type of the downstream items.
-     * @param <U>                the generic type of the upstream items.
-     * @param <UK>               the generic type of the group-key. This type must implement the equals and hashCode
-     *                           methods so that the group-key of two different upstream-items (as provided by the
-     *                           groupKeyFunction) that belong in the same group will be considered equal, otherwise (if
-     *                           they belong in different groups will be considered not-equals.
-     * @return a Flowable flow of downstream items.
+     * @param upstream         the upstream as a flow of upstream-items.
+     * @param groupKeyFunction the function that will be applied to an upstream item to determine which group it
+     *                         belongs to. This function must be idempotent (cannot have side effect as it might be
+     *                         applied more than once).
+     * @param <T>              the generic type of the upstream and downstream items.
+     * @param <K>              the generic type of the group-key. This type must implement the equals and hashCode
+     *                         methods so that the group-key of two different upstream-items (as provided by the
+     *                         groupKeyFunction) that belong in the same group will be considered equal, otherwise (if
+     *                         they belong in different groups will be considered not-equals.
+     * @return a flow of groups where each group is a separate subflow of upstream items.
      */
-    public static <D, U, UK> Flowable<D> groupByConvertOrdered(final Flowable<U> upstream, final Function<U, UK> groupKeyFunction, BiFunction<UK, List<U>, D> convertionFunction) {
+    public static <T, K> Flowable<MyGroupedFlowable<T, K>> groupByOrdered(final Flowable<? extends T> upstream, final Function<? super T, ? extends K> groupKeyFunction) {
+        final GroupedItemWrapper<T> groupCompleteItem = new GroupedItemWrapper<>((T) null);
+        final GroupedItemWrapper<T> cancelledItem = new GroupedItemWrapper<>((T) null);
 
-        final AtomicReference<UK> groupKeyRef = new AtomicReference<>();
-        final List<U> itemBuffer = new ArrayList<>();
-        final AtomicReference<CompletableFuture<D>> upstreamCompleteSignal = new AtomicReference<>();
+        final AtomicReference<K> groupKeyRef = new AtomicReference<>();
+        final Map<K, BlockingQueue<GroupedItemWrapper<T>>> itemsByGroup = new LinkedHashMap<>();
 
-        return upstream.filter(upstreamItem -> {
+        return upstream.filter(item -> {
             // Group by object determined by groupKeyFunction
-            UK groupKey = groupKeyFunction.apply(upstreamItem);
+            K groupKey = groupKeyFunction.apply(item);
+
             if (groupKeyRef.get() == null) {
-                // very first upstream item
+                // very first upstream item, add item to new group
                 groupKeyRef.set(groupKey);
+                itemsByGroup.computeIfAbsent(groupKey, k -> new LinkedBlockingQueue<>()).add(new GroupedItemWrapper<>(item));
+                return true;
             }
             if (groupKey.equals(groupKeyRef.get())) {
-                // upstream item belongs in current group, buffer item
-                itemBuffer.add(upstreamItem);
-                return false; // do not pass item downstream
+                // group already exists, add item to existing group
+                itemsByGroup.computeIfAbsent(groupKey, k -> new LinkedBlockingQueue<>()).add(new GroupedItemWrapper<>(item));
+                return false;
             }
-            if (itemBuffer.isEmpty()) {
-                // empty item group, replace group using current item
-                itemBuffer.add(upstreamItem);
-                groupKeyRef.set(groupKey);
-                return false; // do not pass item downstream
-            }
-            // new group
-            return true; // pass item downstream
+
+            // new group, signal completion of previous group and add item to new group
+            itemsByGroup.get(groupKeyRef.get()).add(groupCompleteItem);
+            groupKeyRef.set(groupKey);
+            itemsByGroup.computeIfAbsent(groupKey, k -> new LinkedBlockingQueue<>()).add(new GroupedItemWrapper<>(item));
+            return true;
+
+        }).doOnSubscribe(subscription -> {
+            groupKeyRef.set(null);
+            itemsByGroup.clear();
 
         }).doOnComplete(() -> {
-            if (itemBuffer.isEmpty()) {
-                // upstream flow contained no items
-                groupKeyRef.set(null);
-                upstreamCompleteSignal.get().complete(null);
+            K groupKey = groupKeyRef.get();
+            if (groupKey == null) {
                 return;
             }
-            D downstreamItem = convertionFunction.apply(groupKeyRef.get(), itemBuffer);
-            itemBuffer.clear();
-            groupKeyRef.set(null);
-            upstreamCompleteSignal.get().complete(downstreamItem);
+            itemsByGroup.get(groupKey).put(groupCompleteItem);
+
+        }).doOnError(throwable -> {
+            K groupKey = groupKeyRef.get();
+            if (groupKey == null) {
+                return;
+            }
+            itemsByGroup.get(groupKey).put(new GroupedItemWrapper<>(throwable));
 
         }).doOnCancel(() -> {
-            // reset state in-case someone re-subscribes to this flow
-            itemBuffer.clear();
-            groupKeyRef.set(null);
-            upstreamCompleteSignal.get().complete(null); // complete merge with no item
+            K groupKey = groupKeyRef.get();
+            if (groupKey == null) {
+                return;
+            }
+            itemsByGroup.get(groupKey).put(cancelledItem);
 
-        }).map(upstreamItem -> {
-            D downstreamItem = convertionFunction.apply(groupKeyRef.get(), itemBuffer);
-            itemBuffer.clear();
-            itemBuffer.add(upstreamItem);
-            groupKeyRef.set(groupKeyFunction.apply(upstreamItem));
-            return downstreamItem;
-
-        }).compose(upstreamFlowable -> {
-            upstreamCompleteSignal.set(new CompletableFuture<>());
-            return upstreamFlowable.mergeWith(Maybe.using(() -> upstreamCompleteSignal.get(),
-                    d -> Maybe.fromFuture(d),
-                    d -> upstreamCompleteSignal.set(new CompletableFuture<>()))
+        }).map(item -> {
+            final K groupKey = groupKeyRef.get();
+            final BlockingQueue<GroupedItemWrapper<T>> blockingQueue = itemsByGroup.get(groupKey);
+            Flowable<T> innerGroupFlow = Flowable.generate(
+                    () -> blockingQueue,
+                    (queue, emitter) -> {
+                        GroupedItemWrapper<T> wrapper = queue.take();
+                        if (wrapper == groupCompleteItem) {
+                            emitter.onComplete();
+                            return;
+                        }
+                        if (wrapper == cancelledItem) {
+                            emitter.onError(new RuntimeException("cancelled"));
+                        }
+                        if (wrapper.throwable != null) {
+                            emitter.onError(wrapper.throwable);
+                        }
+                        emitter.onNext(wrapper.item);
+                    },
+                    queue -> queue.clear()
             );
-
+            return new MyGroupedFlowable<>(groupKey, innerGroupFlow.subscribeOn(Schedulers.newThread()));
         });
+    }
+
+    public static class MyGroupedFlowable<T, K> {
+        private final K groupKey;
+        private final Flowable<T> flowable;
+
+        private MyGroupedFlowable(K groupKey, Flowable<T> flowable) {
+            this.groupKey = groupKey;
+            this.flowable = flowable;
+        }
+
+        public K key() {
+            return groupKey;
+        }
+
+        public Flowable<T> flowable() {
+            return flowable;
+        }
+    }
+
+    private static class GroupedItemWrapper<T> {
+        final T item;
+        final Throwable throwable;
+
+        GroupedItemWrapper(T item) {
+            this.item = item;
+            this.throwable = null;
+        }
+
+        GroupedItemWrapper(Throwable t) {
+            this.item = null;
+            this.throwable = t;
+        }
     }
 
     static AtomicInteger nextFlowId = new AtomicInteger(1);

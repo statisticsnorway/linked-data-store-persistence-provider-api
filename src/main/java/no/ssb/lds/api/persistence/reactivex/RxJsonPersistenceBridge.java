@@ -100,12 +100,18 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
      * The received fragments must be ordered by id <strong>before</strong> it is ordered by path..
      */
     static Flowable<JsonDocument> toDocuments(Flowable<Fragment> fragmentFlowable, int fragmentSize, boolean includeDeleted) {
-        return RxGroupByTools.groupByConvertOrdered(
+        return RxGroupByTools.groupByOrdered(
                 fragmentFlowable.takeWhile(fragment -> !fragment.isStreamingControl()),
-                fragment -> DocumentKey.from(fragment),
-                (key, fragments) -> documentFromFragments(key, fragments, fragmentSize)
+                fragment -> DocumentKey.from(fragment)
 
-        ).filter(flattenedDocument -> {
+        ).concatMap(group -> {
+            // For each group, create a FlattenedDocument.
+            return group.flowable()
+                    .toMultimap(Fragment::path)
+                    .map(map -> FlattenedDocument.decodeDocument(group.key(), map, fragmentSize))
+                    .toFlowable();
+
+        }).filter(flattenedDocument -> {
             // Filter out the deleted documents.
             return includeDeleted || !flattenedDocument.deleted();
 
