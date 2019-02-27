@@ -41,12 +41,7 @@ public class DocumentKey {
 
     @Override
     public String toString() {
-        return "DocumentKey{" +
-                "namespace='" + namespace + '\'' +
-                ", entity='" + entity + '\'' +
-                ", id='" + id + '\'' +
-                ", timestamp=" + timestamp +
-                '}';
+        return "DocumentKey{" + namespace + '/' + entity + '/' + id + '/' + timestamp + '}';
     }
 
     @Override
