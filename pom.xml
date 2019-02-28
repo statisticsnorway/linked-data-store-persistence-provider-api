@@ -4,7 +4,7 @@
 
     <groupId>no.ssb.lds</groupId>
     <artifactId>linked-data-store-persistence-provider-api</artifactId>
-    <version>0.10</version>
+    <version>0.11-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>LinkedDataStore Persistence Provider API</name>
@@ -45,7 +45,7 @@
         <connection>scm:git:git://github.com/statisticsnorway/linked-data-store-persistence-provider-api.git</connection>
         <developerConnection>scm:git:git@github.com:statisticsnorway/linked-data-store-persistence-provider-api.git</developerConnection>
         <url>https://github.com/statisticsnorway/linked-data-store-persistence-provider-api/tree/master</url>
-        <tag>v0.10</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <distributionManagement>
