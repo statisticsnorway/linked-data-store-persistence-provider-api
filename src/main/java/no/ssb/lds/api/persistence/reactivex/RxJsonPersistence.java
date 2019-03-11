@@ -81,7 +81,14 @@ public interface RxJsonPersistence {
     /**
      * TODO: onError(PersistenceException) in case of persistence exception
      */
-    Completable createOrOverwrite(Transaction tx, JsonDocument document, Specification specification);
+    default Completable createOrOverwrite(Transaction tx, JsonDocument document, Specification specification) {
+        return createOrOverwrite(tx, Flowable.just(document), specification);
+    }
+
+    /**
+     * TODO: onError(PersistenceException) in case of persistence exception
+     */
+    Completable createOrOverwrite(Transaction tx, Flowable<JsonDocument> documentFlowable, Specification specification);
 
     /**
      * TODO: onError(PersistenceException) in case of persistence exception

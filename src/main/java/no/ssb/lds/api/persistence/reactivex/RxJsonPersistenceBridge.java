@@ -241,12 +241,14 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
     }
 
     @Override
-    public Completable createOrOverwrite(Transaction tx, JsonDocument document, Specification specification) {
-        DocumentKey key = document.key();
-        JsonNode json = document.jackson();
-        JsonToFlattenedDocument converter = new JsonToFlattenedDocument(key.namespace(), key.entity(), key.id(),
-                key.timestamp(), json, fragmentSize);
-        return persistence.createOrOverwrite(tx, Flowable.fromIterable(() -> converter.toDocument().fragmentIterator()));
+    public Completable createOrOverwrite(Transaction tx, Flowable<JsonDocument> documentFlowable, Specification specification) {
+        return persistence.createOrOverwrite(tx, documentFlowable.concatMap(document -> {
+            DocumentKey key = document.key();
+            JsonNode json = document.jackson();
+            JsonToFlattenedDocument converter = new JsonToFlattenedDocument(key.namespace(), key.entity(), key.id(),
+                    key.timestamp(), json, fragmentSize);
+            return Flowable.fromIterable(() -> converter.toDocument().fragmentIterator());
+        }));
     }
 
     @Override
