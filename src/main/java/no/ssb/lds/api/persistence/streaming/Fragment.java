@@ -1,5 +1,7 @@
 package no.ssb.lds.api.persistence.streaming;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -49,19 +51,12 @@ public class Fragment implements Comparable<Fragment> {
         return sb.toString();
     }
 
-    private static final int TRUNCATED_VALUE_LENGTH = 100;
-
-    public static byte[] truncate(byte[] value) {
-        // TODO use a hashing function (e.g. md5) instead of truncating value
-        // TODO this will also provide predictable and small index key-sizes.
-
-        if (value.length <= TRUNCATED_VALUE_LENGTH) {
-            return value;
+    public static byte[] hashOf(byte[] value) {
+        try {
+            return MessageDigest.getInstance("SHA-1").digest(value);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
         }
-
-        byte[] truncatedValue = new byte[TRUNCATED_VALUE_LENGTH];
-        System.arraycopy(value, 0, truncatedValue, 0, truncatedValue.length);
-        return truncatedValue;
     }
 
     private final boolean streamingControl;
@@ -185,7 +180,7 @@ public class Fragment implements Comparable<Fragment> {
     }
 
     public byte[] truncatedValue() {
-        return truncate(value);
+        return hashOf(value);
     }
 
     @Override
