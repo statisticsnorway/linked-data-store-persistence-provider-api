@@ -5,7 +5,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-public class SpecificationTraverals {
+public class SpecificationTraversal {
 
     public static void depthFirstPreOrderFullTraversal(SpecificationElement element, BiConsumer<Deque<SpecificationElement>, SpecificationElement> visit) {
         Deque<SpecificationElement> ancestors = new LinkedList<>();
