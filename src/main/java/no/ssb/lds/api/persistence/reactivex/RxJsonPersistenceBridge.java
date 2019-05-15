@@ -19,7 +19,7 @@ import no.ssb.lds.api.persistence.streaming.Fragment;
 import no.ssb.lds.api.persistence.streaming.FragmentType;
 import no.ssb.lds.api.specification.Specification;
 import no.ssb.lds.api.specification.SpecificationElement;
-import no.ssb.lds.api.specification.SpecificationTraverals;
+import no.ssb.lds.api.specification.SpecificationTraversal;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -285,7 +285,7 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
             specification) {
         List<String> paths = new ArrayList<>();
         SpecificationElement entityElement = JsonNavigationPath.from("$").toSpecificationElement(specification, entity);
-        SpecificationTraverals.depthFirstPreOrderFullTraversal(entityElement, (ancestors, element) -> paths.add(JsonNavigationPath.from(element).serialize()));
+        SpecificationTraversal.depthFirstPreOrderFullTraversal(entityElement, (ancestors, element) -> paths.add(JsonNavigationPath.from(element).serialize()));
         return persistence.deleteAllEntities(tx, namespace, entity, paths);
     }
 

@@ -23,4 +23,14 @@ public interface SpecificationElement {
     Map<String, SpecificationElement> getProperties();
 
     SpecificationElement getItems();
+
+    default boolean isRequired() {
+        SpecificationElement parent = getParent();
+        if (parent != null) {
+            return parent.getRequired().contains(getName());
+        }
+        return false;
+    }
+
+    Set<String> getRequired();
 }
