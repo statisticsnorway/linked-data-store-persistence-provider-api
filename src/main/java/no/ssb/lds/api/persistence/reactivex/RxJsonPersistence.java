@@ -62,21 +62,45 @@ public interface RxJsonPersistence {
 
 
     /**
-     * Read {@link JsonDocument}s linked to another document.
-     * <p>
-     * TODO: onError(PersistenceException) in case of persistence exception
+     * Read the <b>target</b> {@link JsonDocument}s linked to a <b>source</b> document.
      *
-     * @param tx                 the transaction
-     * @param snapshot           upper bound of the returned version
-     * @param ns                 the name space
-     * @param entityName         the entity name
-     * @param jsonNavigationPath the json-navigation-path
-     * @param targetEntityName   the target entity name
-     * @param range              lower and upper id bounds
+     * @param tx               the transaction
+     * @param snapshot         upper bound of the returned version
+     * @param ns               the name space
+     * @param sourceEntityName the source entity name
+     * @param sourceId         the source id
+     * @param relationPath     the json-navigation-path
+     * @param targetEntityName the target entity name
+     * @param range            lower and upper id bounds
+     * @see #readSourceDocuments(Transaction, ZonedDateTime, String, String, String, JsonNavigationPath, String, Range)
      */
-    Flowable<JsonDocument> readLinkedDocuments(Transaction tx, ZonedDateTime snapshot, String ns,
-                                               String entityName, String id, JsonNavigationPath jsonNavigationPath,
+    Flowable<JsonDocument> readTargetDocuments(Transaction tx, ZonedDateTime snapshot, String ns,
+                                               String sourceEntityName, String sourceId, JsonNavigationPath relationPath,
                                                String targetEntityName, Range<String> range);
+
+    @Deprecated
+    default Flowable<JsonDocument> readLinkedDocuments(Transaction tx, ZonedDateTime snapshot, String ns,
+                                                       String sourceEntityName, String sourceId, JsonNavigationPath relationPath,
+                                                       String targetEntityName, Range<String> range) {
+        return readTargetDocuments(tx, snapshot, ns, sourceEntityName, sourceId, relationPath, targetEntityName, range);
+    }
+
+    /**
+     * Read the <b>source</b> {@link JsonDocument}s that links to a <b>target</b> document.
+     * <p>
+     * Note that the range applies to the source documents.
+     *
+     * @param tx               the transaction
+     * @param snapshot         upper bound of the returned version
+     * @param ns               the name space
+     * @param targetEntityName the target entity name
+     * @param targetId         the target id
+     * @param range            lower and upper id bounds
+     * @see #readTargetDocuments(Transaction, ZonedDateTime, String, String, String, JsonNavigationPath, String, Range)
+     */
+    Flowable<JsonDocument> readSourceDocuments(Transaction tx, ZonedDateTime snapshot, String ns,
+                                               String targetEntityName, String targetId, JsonNavigationPath relationPath,
+                                               String sourceEntityName, Range<String> range);
 
     /**
      * TODO: onError(PersistenceException) in case of persistence exception
@@ -107,8 +131,8 @@ public interface RxJsonPersistence {
     /**
      * TODO: onError(PersistenceException) in case of persistence exception
      */
-    Completable markDocumentDeleted(Transaction transaction, String ns, String entityName, String id, ZonedDateTime version,
-                                    PersistenceDeletePolicy policy);
+    Completable markDocumentDeleted(Transaction transaction, String ns, String entityName, String id,
+                                    ZonedDateTime version, PersistenceDeletePolicy policy);
 
     /**
      * Checks if there is a {@link JsonDocument} before the given id.
@@ -135,7 +159,8 @@ public interface RxJsonPersistence {
      */
     Transaction createTransaction(boolean readOnly) throws PersistenceException;
 
-    Flowable<JsonDocument> findDocument(Transaction tx, ZonedDateTime snapshot, String namespace, String entityName, JsonNavigationPath path, String value, Range<String> range);
+    Flowable<JsonDocument> findDocument(Transaction tx, ZonedDateTime snapshot, String namespace, String entityName,
+                                        JsonNavigationPath path, String value, Range<String> range);
 
     /**
      * Clean up resources

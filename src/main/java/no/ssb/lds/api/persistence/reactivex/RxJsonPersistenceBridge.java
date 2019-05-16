@@ -215,7 +215,7 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
     }
 
     @Override
-    public Flowable<JsonDocument> readLinkedDocuments(Transaction tx, ZonedDateTime snapshot, String ns,
+    public Flowable<JsonDocument> readTargetDocuments(Transaction tx, ZonedDateTime snapshot, String ns,
                                                       String entityName, String id, JsonNavigationPath jsonNavigationPath,
                                                       String targetEntityName, Range<String> range) {
         // TODO support reading only from relevant jsonPath in RxPersistence instead of reading entire document.
@@ -238,6 +238,23 @@ public class RxJsonPersistenceBridge implements RxJsonPersistence {
                 .sorted((o1, o2) -> range.isBackward() ? o2.compareTo(o1) : o1.compareTo(o2))
                 .take(ofNullable(range).map(Range::getLimit).orElse(Integer.MAX_VALUE))
                 .concatMapMaybe(targetId -> readDocument(tx, snapshot, ns, targetEntityName, targetId));
+    }
+
+    @Override
+    public Flowable<JsonDocument> readSourceDocuments(Transaction tx, ZonedDateTime snapshot, String ns,
+                                                      String entityName, String id, JsonNavigationPath parentPath,
+                                                      String parentEntityName, Range<String> range) {
+        // Uses find to implement back links.
+        byte[] idValue = String.format("/%s/%s", entityName, id).getBytes();
+        Flowable<Fragment> fragments = persistence.find(tx, snapshot, ns, parentEntityName, parentPath.serialize(),
+                idValue, range);
+
+        // Resort.
+        fragments = range.isBackward()
+                ? fragments.sorted(Comparator.reverseOrder())
+                : fragments.sorted();
+
+        return doReadDocuments(fragments, range, fragmentSize);
     }
 
     @Override
