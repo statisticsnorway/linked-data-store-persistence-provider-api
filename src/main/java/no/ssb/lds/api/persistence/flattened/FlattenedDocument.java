@@ -13,23 +13,71 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 
 import static java.util.Optional.ofNullable;
 
 public class FlattenedDocument {
+
+    /**
+     * Paths with index need to be sorted lexicographically on the path but numerically on the indices.
+     */
+    private static Comparator<String> INDEX_AWARE_PATH_COMPARATOR = new Comparator<>() {
+
+        Pattern pattern = Pattern.compile("(\\.|\\[|\\]\\.)");
+
+        boolean isDigit(CharSequence seq) {
+            for (int j = 0; j < seq.length(); j++) {
+                char charAt = seq.charAt(j);
+                if (!('0' <= charAt && charAt <= '9')) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public int compare(String path1, String path2) {
+            // Kinda optimized. Could be simpler but this code is called often.
+            String[] parts1 = pattern.split(path1);
+            String[] parts2 = pattern.split(path2);
+            if (parts1.length != parts2.length) {
+                return parts1.length < parts2.length ? -1 : +1;
+            } else {
+                int compare = 0;
+                for (int i = 0; i < parts1.length; i++) {
+                    if (isDigit(parts1[i]) && isDigit(parts2[i])) {
+                        compare = Integer.compareUnsigned(
+                                Integer.parseInt(parts1[i]),
+                                Integer.parseInt(parts2[i])
+                        );
+                    } else {
+                        compare = parts1[i].compareTo(parts2[i]);
+                    }
+                    if (compare != 0) {
+                        return compare;
+                    }
+                }
+                return compare;
+            }
+        }
+    };
+
     private final DocumentKey key;
     private final Map<String, FlattenedDocumentLeafNode> leafNodesByPath;
     private final boolean deleted;
 
     public FlattenedDocument(DocumentKey key, Map<String, FlattenedDocumentLeafNode> leafNodesByPath, boolean deleted) {
         this.key = key;
-        this.leafNodesByPath = leafNodesByPath;
+        this.leafNodesByPath = new TreeMap<>(INDEX_AWARE_PATH_COMPARATOR);
+        this.leafNodesByPath.putAll(leafNodesByPath);
         this.deleted = deleted;
     }
 
