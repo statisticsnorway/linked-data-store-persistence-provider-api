@@ -8,21 +8,13 @@ import org.testng.annotations.Test;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.*;
 
 public class FlattenedDocumentTest {
 
-    @Test
+    //@Test
     public void thatLeafNodeWithSmallValueProduceSingleCorrectFragment() {
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Etc/UTC"));
         DocumentKey key = new DocumentKey("ns", "E", "1", now);
@@ -38,7 +30,7 @@ public class FlattenedDocumentTest {
         assertFalse(iterator.hasNext());
     }
 
-    @Test
+    //@Test
     public void thatLeafNodeWithLargeValueProduceSeveralCorrectFragments() {
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Etc/UTC"));
         DocumentKey key = new DocumentKey("ns", "E", "1", now);
