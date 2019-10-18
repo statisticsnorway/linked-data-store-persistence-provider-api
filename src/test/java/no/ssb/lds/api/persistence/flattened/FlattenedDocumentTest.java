@@ -14,14 +14,14 @@ import static org.testng.Assert.*;
 
 public class FlattenedDocumentTest {
 
-    //@Test
+    @Test
     public void thatLeafNodeWithSmallValueProduceSingleCorrectFragment() {
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Etc/UTC"));
         DocumentKey key = new DocumentKey("ns", "E", "1", now);
         TreeMap<String, FlattenedDocumentLeafNode> leafNodesByPath = new TreeMap<>();
-        FlattenedDocument document = new FlattenedDocument(key, leafNodesByPath, false);
         FlattenedDocumentLeafNode node = new FlattenedDocumentLeafNode(key, "name", FragmentType.STRING, "My Name", 8 * 1024);
         leafNodesByPath.put("name", node);
+        FlattenedDocument document = new FlattenedDocument(key, leafNodesByPath, false);
         Iterator<Fragment> iterator = document.fragmentIterator();
         assertTrue(iterator.hasNext());
         Fragment fragment = iterator.next();
@@ -30,16 +30,16 @@ public class FlattenedDocumentTest {
         assertFalse(iterator.hasNext());
     }
 
-    //@Test
+    @Test
     public void thatLeafNodeWithLargeValueProduceSeveralCorrectFragments() {
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Etc/UTC"));
         DocumentKey key = new DocumentKey("ns", "E", "1", now);
         FlattenedDocumentLeafNode firstname = new FlattenedDocumentLeafNode(key, "firstname", FragmentType.STRING, "John", 3);
         FlattenedDocumentLeafNode lastname = new FlattenedDocumentLeafNode(key, "lastname", FragmentType.STRING, "Smith", 3);
         TreeMap<String, FlattenedDocumentLeafNode> leafNodesByPath = new TreeMap<>();
-        FlattenedDocument document = new FlattenedDocument(key, leafNodesByPath, false);
         leafNodesByPath.put("firstname", firstname);
         leafNodesByPath.put("lastname", lastname);
+        FlattenedDocument document = new FlattenedDocument(key, leafNodesByPath, false);
         Iterator<Fragment> iterator = document.fragmentIterator();
 
         assertTrue(iterator.hasNext());
