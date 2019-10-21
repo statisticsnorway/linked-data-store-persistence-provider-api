@@ -2,7 +2,6 @@ kind: pipeline
 name: default
 
 steps:
-
   - name: authenticate
     image: robertstettner/drone-mvn-auth
     pull: true
