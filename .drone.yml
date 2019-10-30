@@ -2,6 +2,25 @@ kind: pipeline
 name: default
 
 steps:
+  # Restore the cache if it exists
+  - name: load-cache
+    image: homerovalle/drone-gcs-cache
+    settings:
+      pull: true
+      bucket: bip-drone-dependency-cache
+      json_key:
+        from_secret: gcs_credentials
+      restore: true
+
+  - name: restore-cache
+    image: maven:3-jdk-11
+    commands:
+      - mkdir -p /drone/src/.m2
+      - mv /drone/src/drone/src/.m2/repository /drone/src/.m2/
+      - rm -rf /drone/src/drone/src/.m2
+    depends_on:
+      - load-cache
+
   - name: authenticate
     image: robertstettner/drone-mvn-auth
     pull: true
@@ -18,6 +37,7 @@ steps:
       M2_HOME: /drone/src/.m2
     depends_on:
       - authenticate
+      - restore-cache
 
   - name: test
     image: maven:3-jdk-11
@@ -88,6 +108,32 @@ steps:
     depends_on:
       - publish-maven
 
+  # Rebuild cache if it has changed with this build
+  - name: rebuild-cache
+    image: homerovalle/drone-gcs-cache
+    settings:
+      pull: true
+      bucket: bip-drone-dependency-cache
+      json_key:
+        from_secret: gcs_credentials
+      rebuild: true
+      mount:
+        - /drone/src/.m2/repository
+    depends_on:
+      - publish-maven
+
+  # OPTIONAL: Flush the cache of old cache items (older than 14 days)
+  - name: flush-cache
+    image: homerovalle/drone-gcs-cache
+    settings:
+      pull: true
+      bucket: bip-drone-dependency-cache
+      json_key:
+        from_secret: gcs_credentials
+      flush: true
+      flush_age: 14
+    depends_on:
+      - publish-maven
 ---
 kind: secret
 name: maven_servers
