@@ -2,8 +2,9 @@ kind: pipeline
 name: default
 
 steps:
+
   # Restore the cache if it exists
-  - name: load-cache
+  - name: restore-cache
     image: homerovalle/drone-gcs-cache
     settings:
       pull: true
@@ -13,18 +14,6 @@ steps:
       restore: true
       mount:
         - /drone/src/.m2/repository
-
-  - name: restore-cache
-    image: maven:3-jdk-11
-    commands:
-      - mkdir -p /drone/src/.m2/repository
-      - mkdir -p /drone/src/drone/src/.m2/repository
-      - ls -l /drone/src/.m2/repository
-      - ls -l /drone/src/drone/src/.m2/repository
-      - mv /drone/src/drone/src/.m2/repository /drone/src/.m2/
-      - rm -rf /drone/src/drone/src/.m2
-    depends_on:
-      - load-cache
 
   - name: authenticate
     image: robertstettner/drone-mvn-auth
