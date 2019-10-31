@@ -17,8 +17,9 @@ steps:
   - name: restore-cache
     image: maven:3-jdk-11
     commands:
-      - mkdir -p /drone/src/.m2
+      - mkdir -p /drone/src/.m2/repository
       - mkdir -p /drone/src/drone/src/.m2/repository
+      - ls -l /drone/src/.m2/repository
       - ls -l /drone/src/drone/src/.m2/repository
       - mv /drone/src/drone/src/.m2/repository /drone/src/.m2/
       - rm -rf /drone/src/drone/src/.m2
@@ -122,7 +123,7 @@ steps:
         from_secret: gcs_credentials
       rebuild: true
       mount:
-        - /drone/src/.m2/repository
+        - .m2/repository
     depends_on:
       - publish-maven
 
