@@ -12,8 +12,6 @@ steps:
       json_key:
         from_secret: gcs_credentials
       restore: true
-      mount:
-        - /drone/src/.m2/repository
 
   - name: authenticate
     image: robertstettner/drone-mvn-auth
