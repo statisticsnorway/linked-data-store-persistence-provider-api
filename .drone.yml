@@ -19,7 +19,6 @@ steps:
     commands:
       - mkdir -p /drone/src/.m2
       - mkdir -p /drone/src/drone/src/.m2/repository
-      - ls -l /drone/src/.m2/repository
       - ls -l /drone/src/drone/src/.m2/repository
       - mv /drone/src/drone/src/.m2/repository /drone/src/.m2/
       - rm -rf /drone/src/drone/src/.m2
