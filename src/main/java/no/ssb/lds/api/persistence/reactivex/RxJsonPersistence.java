@@ -168,4 +168,8 @@ public interface RxJsonPersistence {
      * @throws PersistenceException
      */
     void close() throws PersistenceException;
+
+    default <T> T getInstance(Class<T> clazz) {
+        return null;
+    }
 }

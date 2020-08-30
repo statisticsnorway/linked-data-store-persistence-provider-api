@@ -28,4 +28,8 @@ public interface Transaction extends AutoCloseable {
             }
         }
     }
+
+    default <T> T getInstance(Class<T> clazz) {
+        return null;
+    }
 }
