@@ -4,6 +4,7 @@ module no.ssb.lds.persistence.api {
     requires com.github.akarnokd.rxjava2jdk9interop;
     requires com.fasterxml.jackson.core;
     requires com.fasterxml.jackson.databind;
+    requires graphql.java;
 
     exports no.ssb.lds.api.persistence;
     exports no.ssb.lds.api.persistence.flattened;
