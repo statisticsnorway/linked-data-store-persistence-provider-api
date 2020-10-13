@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,22 +15,24 @@ import java.util.List;
 public class Batch {
 
     final JsonNode batchNode;
+    final ZonedDateTime now;
     final List<Group> groups = new ArrayList<>();
 
     public Batch(JsonNode batchNode) {
         this.batchNode = batchNode;
+        this.now = ZonedDateTime.now(ZoneOffset.UTC); // default timestamp in case non is supplied in batch
         if (batchNode.isArray()) {
             Iterator<JsonNode> elements = batchNode.elements();
             while (elements.hasNext()) {
                 JsonNode groupNode = elements.next();
-                addGroup(groupNode);
+                addGroup((ObjectNode) groupNode);
             }
         } else if (batchNode.isObject()) {
-            addGroup(batchNode);
+            addGroup((ObjectNode) batchNode);
         }
     }
 
-    private void addGroup(JsonNode groupNode) {
+    private void addGroup(ObjectNode groupNode) {
         JsonNode operationNode = groupNode.get("operation");
         String operation = operationNode.textValue();
         if ("put".equals(operation)) {
@@ -53,13 +56,14 @@ public class Batch {
         PUT, DELETE
     }
 
-    public static abstract class Group {
-        final JsonNode groupNode;
+    public abstract class Group {
+        final ObjectNode groupNode;
         final String type;
 
-        Group(JsonNode groupNode) {
+        Group(ObjectNode groupNode) {
             this.groupNode = groupNode;
             this.type = groupNode.get("type").textValue();
+            entries(); // force use of timestamp in nodes
         }
 
         public abstract GroupType groupType();
@@ -79,7 +83,7 @@ public class Batch {
             List<Entry> result = new ArrayList<>();
             ArrayNode entries = (ArrayNode) groupNode.get("entries");
             for (JsonNode node : entries) {
-                result.add(new Entry((ObjectNode) node));
+                result.add(new Entry(groupNode, (ObjectNode) node));
             }
             return result;
         }
@@ -89,10 +93,9 @@ public class Batch {
         public abstract void evaluate(ExpressionVisitor visitor);
     }
 
-    public static class PutGroup extends Group {
-        PutGroup(JsonNode groupNode) {
+    public class PutGroup extends Group {
+        PutGroup(ObjectNode groupNode) {
             super(groupNode);
-            ArrayNode entries = (ArrayNode) groupNode.get("entries");
         }
 
         @Override
@@ -111,14 +114,21 @@ public class Batch {
         }
     }
 
-    public static class Entry {
+    public class Entry {
         final String id;
         final ZonedDateTime timestamp;
         final JsonNode dataNode;
 
-        Entry(ObjectNode entryNode) {
+        Entry(ObjectNode groupNode, ObjectNode entryNode) {
             this.id = entryNode.get("id").textValue();
-            this.timestamp = ZonedDateTime.parse(entryNode.get("timestamp").textValue());
+            if (entryNode.has("timestamp") && entryNode.get("timestamp").isTextual()) {
+                this.timestamp = ZonedDateTime.parse(entryNode.get("timestamp").textValue());
+            } else if (groupNode.has("timestamp") && groupNode.get("timestamp").isTextual()) {
+                this.timestamp = ZonedDateTime.parse(groupNode.get("timestamp").textValue());
+            } else {
+                this.timestamp = Batch.this.now;
+                groupNode.put("timestamp", this.timestamp.toString());
+            }
             this.dataNode = entryNode.get("data");
         }
 
@@ -135,14 +145,18 @@ public class Batch {
         }
     }
 
-    public static class DeleteGroup extends Group {
-        final JsonNode matchNode;
+    public class DeleteGroup extends Group {
+        final ObjectNode matchNode;
         final ZonedDateTime timestamp;
 
-        DeleteGroup(JsonNode groupNode) {
+        DeleteGroup(ObjectNode groupNode) {
             super(groupNode);
-            matchNode = groupNode.has("match") ? groupNode.get("match") : null;
-            this.timestamp = groupNode.has("timestamp") ? ZonedDateTime.parse(groupNode.get("timestamp").textValue()) : null;
+            matchNode = groupNode.has("match") ? (ObjectNode) groupNode.get("match") : null;
+            if (groupNode.has("timestamp") && groupNode.get("timestamp").isTextual()) {
+                this.timestamp = ZonedDateTime.parse(groupNode.get("timestamp").textValue());
+            } else {
+                this.timestamp = null;
+            }
         }
 
         public ZonedDateTime getTimestamp() {
@@ -164,9 +178,9 @@ public class Batch {
             if (!hasMatchCriteria()) {
                 return;
             }
-            visitor.enterMatch((ObjectNode) matchNode);
-            traverse((ObjectNode) matchNode, visitor);
-            visitor.leaveMatch((ObjectNode) matchNode);
+            visitor.enterMatch(matchNode);
+            traverse(matchNode, visitor);
+            visitor.leaveMatch(matchNode);
         }
     }
 
