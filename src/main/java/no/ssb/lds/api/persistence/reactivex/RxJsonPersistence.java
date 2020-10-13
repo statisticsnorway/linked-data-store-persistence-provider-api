@@ -5,13 +5,17 @@ import io.reactivex.Flowable;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
 import no.ssb.lds.api.json.JsonNavigationPath;
+import no.ssb.lds.api.persistence.DocumentKey;
 import no.ssb.lds.api.persistence.PersistenceDeletePolicy;
 import no.ssb.lds.api.persistence.PersistenceException;
 import no.ssb.lds.api.persistence.Transaction;
+import no.ssb.lds.api.persistence.batch.Batch;
 import no.ssb.lds.api.persistence.json.JsonDocument;
 import no.ssb.lds.api.specification.Specification;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Temporary interface
@@ -107,6 +111,36 @@ public interface RxJsonPersistence {
      */
     default Completable createOrOverwrite(Transaction tx, JsonDocument document, Specification specification) {
         return createOrOverwrite(tx, Flowable.just(document), specification);
+    }
+
+    default Completable putBatchGroup(Transaction tx, Batch.PutGroup group, String namespace, Specification specification) {
+        List<JsonDocument> documents = new ArrayList<>();
+        for (Batch.Entry entry : group.entries()) {
+            String entity = group.type();
+            String id = entry.id();
+            ZonedDateTime timestamp = entry.timestamp();
+            DocumentKey documentKey = new DocumentKey(namespace, entity, id, timestamp);
+            JsonDocument jsonDocument = new JsonDocument(documentKey, entry.dataNode());
+            documents.add(jsonDocument);
+        }
+        return createOrOverwrite(tx, Flowable.fromIterable(documents), specification);
+    }
+
+    default Flowable<String> resolveMatchInBatchGroup(Transaction tx, Batch.DeleteGroup group, String namespace, Specification specification) {
+        // TODO implement batch delete match evaluation
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    default Completable deleteBatchGroup(Transaction tx, Batch.DeleteGroup group, String namespace, Specification specification) {
+        if (group.entries().isEmpty()) {
+            return Completable.complete();
+        }
+        List<Completable> completables = new ArrayList<>();
+        for (Batch.Entry entry : group.entries()) {
+            Completable completable = markDocumentDeleted(tx, namespace, group.type(), entry.id(), entry.timestamp(), null);
+            completables.add(completable);
+        }
+        return Completable.merge(completables);
     }
 
     /**

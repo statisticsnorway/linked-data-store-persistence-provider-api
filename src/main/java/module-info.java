@@ -13,4 +13,5 @@ module no.ssb.lds.persistence.api {
     exports no.ssb.lds.api.persistence.reactivex;
     exports no.ssb.lds.api.specification;
     exports no.ssb.lds.api.json;
+    exports no.ssb.lds.api.persistence.batch;
 }
